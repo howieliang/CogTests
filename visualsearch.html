@@ -94,8 +94,8 @@
 
         /* Search Canvas Container */
         #display-container {
-            width: 100%;
-            max-width: 500px;
+            width: 80%;
+            max-width: 400px;
             aspect-ratio: 1 / 1;
             background-color: #ffffff;
             border: 2px solid #e2e8f0;
@@ -180,6 +180,8 @@
 </head>
 <body>
 
+<button onclick="window.location.href='index.html'" style="position:fixed;top:12px;left:12px;background-color:#95a5a6;color:white;border:none;padding:6px 14px;font-size:14px;border-radius:4px;cursor:pointer;z-index:10;">Back</button>
+
     <header>
         <h1>Visual Search Task</h1>
         <p class="instructions">Target: <strong>Red Circle</strong>. Spot it as fast as you can!</p>
@@ -198,7 +200,6 @@
             <input type="range" id="item-count" min="10" max="50" step="5" value="25">
         </div>
         <button id="start-btn" class="btn-start">Start Next Trial</button>
-        <button class="btn-start" style="background-color:#718096;margin-top:8px;" onclick="window.location.href='index.html'">Back to Menu</button>
     </div>
 
     <div id="display-container">
