@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Cognitive Tests</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f9;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        #game-container {
+            width: 100%;
+            max-width: 480px;
+            padding: 24px;
+        }
+
+        .page {
+            display: none;
+        }
+
+        .page.active {
+            display: block;
+        }
+
+        .menu-header {
+            text-align: center;
+            margin-bottom: 32px;
+        }
+
+        .menu-header h1 {
+            font-size: 1.8rem;
+            color: #333;
+            margin-bottom: 8px;
+        }
+
+        .menu-header p {
+            color: #666;
+            font-size: 0.95rem;
+        }
+
+        .menu-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .menu-list button {
+            width: 100%;
+            padding: 16px;
+            font-size: 1rem;
+            font-weight: bold;
+            background-color: #3498db;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+        }
+
+        .menu-list button:hover {
+            background-color: #2980b9;
+        }
+
+        .menu-list button:active {
+            background-color: #1f6391;
+        }
+    </style>
+</head>
+<body>
+    <div id="game-container">
+        <section id="page-1" class="page active">
+            <div class="menu-header">
+                <h1>Cognitive Tests</h1>
+                <p>Select a test to begin.</p>
+            </div>
+            <div class="menu-list">
+                <button onclick="window.location.href='corsi.html'">Corsi Block-Tapping Task</button>
+                <button onclick="window.location.href='visualsearch.html'">Visual Search Task</button>
+                <button onclick="window.location.href='wcsi.html'">Wisconsin Card Sorting Test</button>
+            </div>
+        </section>
+    </div>
+</body>
+</html>
