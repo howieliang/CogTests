@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>Cognitive Tests</title>
+    <title data-i18n="index_page_title">Cognitive Tests</title>
     <style>
         * {
             box-sizing: border-box;
@@ -76,21 +76,57 @@
         .menu-list button:active {
             background-color: #1f6391;
         }
+
+        .lang-row {
+            display: flex;
+            justify-content: flex-end;
+            margin-bottom: 16px;
+        }
+
+        #lang-select {
+            padding: 6px 10px;
+            border-radius: 6px;
+            border: 1px solid #cbd5e0;
+            font-size: 0.9rem;
+            background-color: white;
+            color: #333;
+            cursor: pointer;
+        }
     </style>
+    <script src="lang/lang.js"></script>
 </head>
 <body>
     <div id="game-container">
         <section id="page-1" class="page active">
+            <div class="lang-row">
+                <select id="lang-select" onchange="setLang(this.value)">
+                    <option value="en_us">English (US)</option>
+                    <option value="zh_tw">中文 (繁體)</option>
+                    <option value="nl">Nederlands (NL)</option>
+                    <option value="es">Español (ES)</option>
+                    <option value="fa">فارسی (FA)</option>
+                    <option value="tr">Türkçe (TR)</option>
+                </select>
+            </div>
             <div class="menu-header">
-                <h1>Cognitive Tests</h1>
-                <p>Select a test to begin.</p>
+                <h1 data-i18n="index_heading">Cognitive Tests</h1>
+                <p data-i18n="index_subtitle">Select a test to begin.</p>
             </div>
             <div class="menu-list">
-                <button onclick="window.location.href='corsi.html'">Corsi Block-Tapping Task</button>
-                <button onclick="window.location.href='visualsearch.html'">Visual Search Task</button>
-                <button onclick="window.location.href='wcsi.html'">Wisconsin Card Sorting Test</button>
+                <button data-i18n="index_btn_corsi" onclick="window.location.href='corsi.html'">Corsi Block-Tapping Task</button>
+                <button data-i18n="index_btn_vs" onclick="window.location.href='visualsearch.html'">Visual Search Task</button>
+                <button data-i18n="index_btn_wcst" onclick="window.location.href='wcsi.html'">Wisconsin Card Sorting Test</button>
             </div>
         </section>
     </div>
+    <script>
+        const sel = document.getElementById('lang-select');
+        sel.value = localStorage.getItem('lang') || 'en_us';
+
+        function setLang(lang) {
+            localStorage.setItem('lang', lang);
+            location.reload();
+        }
+    </script>
 </body>
 </html>

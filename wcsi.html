@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Wisconsin Card Sorting Test (WCST)</title>
+    <title data-i18n="wcst_page_title">Wisconsin Card Sorting Test (WCST)</title>
     <style>
         body {
             background-color: #f4f4f9;
@@ -196,38 +196,39 @@
             to { opacity: 1; transform: scale(1); }
         }
     </style>
+    <script src="lang/lang.js"></script>
 </head>
 <body>
 
-<button onclick="window.location.href='index.html'" style="position:fixed;top:12px;left:12px;background-color:#95a5a6;color:white;border:none;padding:6px 14px;font-size:14px;border-radius:4px;cursor:pointer;z-index:10;">Back</button>
+<button data-i18n="back_btn" onclick="window.location.href='index.html'" style="position:fixed;top:12px;left:12px;background-color:#95a5a6;color:white;border:none;padding:6px 14px;font-size:14px;border-radius:4px;cursor:pointer;z-index:10;">Back</button>
 
 <div id="experiment-container">
     
     <div id="screen-title" class="screen">
-        <h1>Wisconsin Card Sorting Test</h1>
-        <p>PsyToolkit JS Implementation</p>
-        <button onclick="nextInstruction(1)">Start</button>
+        <h1 data-i18n="wcst_heading">Wisconsin Card Sorting Test</h1>
+        <p data-i18n="wcst_subtitle">PsyToolkit JS Implementation</p>
+        <button data-i18n="wcst_btn_start" onclick="nextInstruction(1)">Start</button>
     </div>
 
     <div id="screen-ins1" class="screen hidden">
-        <h2>Instructions (1/3)</h2>
-        <p>You will see four target cards at the top of the screen.</p>
-        <p>A new card will appear at the bottom-left of the screen on every turn.</p>
-        <button onclick="nextInstruction(2)">Next</button>
+        <h2 data-i18n="wcst_ins1_title">Instructions (1/3)</h2>
+        <p data-i18n="wcst_ins1_p1">You will see four target cards on the right side of the screen.</p>
+        <p data-i18n="wcst_ins1_p2">A new card will appear at the top of the screen on every turn.</p>
+        <button data-i18n="wcst_btn_next" onclick="nextInstruction(2)">Next</button>
     </div>
 
     <div id="screen-ins2" class="screen hidden">
-        <h2>Instructions (2/3)</h2>
-        <p>Your task is to match the bottom card to one of the four target cards by clicking your choice.</p>
-        <p>The computer will tell you if your match is correct or wrong.</p>
-        <button onclick="nextInstruction(3)">Next</button>
+        <h2 data-i18n="wcst_ins2_title">Instructions (2/3)</h2>
+        <p data-i18n="wcst_ins2_p1">Your task is to match the top card to one of the four target cards by tapping your choice.</p>
+        <p data-i18n="wcst_ins2_p2">The app will tell you if your match is correct or wrong.</p>
+        <button data-i18n="wcst_btn_next" onclick="nextInstruction(3)">Next</button>
     </div>
 
     <div id="screen-ins3" class="screen hidden">
-        <h2>Instructions (3/3)</h2>
-        <p>The matching rule might change without warning during the test.</p>
-        <p>Use the feedback to figure out the current correct rule.</p>
-        <button onclick="startTest()">Begin Test</button>
+        <h2 data-i18n="wcst_ins3_title">Instructions (3/3)</h2>
+        <p data-i18n="wcst_ins3_p1">The matching rule might change without warning during the test.</p>
+        <p data-i18n="wcst_ins3_p2">Use the feedback to figure out the current correct rule.</p>
+        <button data-i18n="wcst_btn_begin" onclick="startTest()">Begin Test</button>
     </div>
 
     <div id="screen-task" class="screen hidden">
@@ -253,17 +254,17 @@
     </div>
 
     <div id="screen-feedback" class="screen hidden">
-        <h2>Feedback on your WCST performance</h2>
-        <p style="font-size: 16px; margin-top:-10px;">(Note: There were in total 60 trials)</p>
-        
+        <h2 data-i18n="wcst_results_title">Feedback on your WCST performance</h2>
+        <p data-i18n="wcst_results_note" style="font-size: 16px; margin-top:-10px;">(Note: There were in total 60 trials)</p>
+
         <table class="stats-table">
-            <tr><td>Error count:</td><td id="num-errors" style="padding-left:30px;"></td><td id="perc-errors"></td></tr>
-            <tr><td>Perseveration error count:</td><td id="num-pers" style="padding-left:30px;"></td><td id="perc-pers"></td></tr>
-            <tr><td>Non-perseveration error count:</td><td id="num-nonpers" style="padding-left:30px;"></td><td id="perc-nonpers"></td></tr>
+            <tr><td data-i18n="wcst_stats_errors">Error count:</td><td id="num-errors" style="padding-left:30px;"></td><td id="perc-errors"></td></tr>
+            <tr><td data-i18n="wcst_stats_pers">Perseveration error count:</td><td id="num-pers" style="padding-left:30px;"></td><td id="perc-pers"></td></tr>
+            <tr><td data-i18n="wcst_stats_nonpers">Non-perseveration error count:</td><td id="num-nonpers" style="padding-left:30px;"></td><td id="perc-nonpers"></td></tr>
         </table>
-        
-        <p style="margin-top: 40px; font-size:16px; color:#aaa;">Press space bar or click below to restart</p>
-        <button onclick="location.reload()">Restart Test</button>
+
+        <p data-i18n="wcst_results_restart" style="margin-top: 40px; font-size:16px; color:#aaa;">Press space bar or tap below to restart</p>
+        <button data-i18n="wcst_btn_restart" onclick="location.reload()">Restart Test</button>
     </div>
 
 </div>
@@ -408,11 +409,11 @@
         let nonPerseverationError = 0;
 
         if (isCorrect) {
-            textFeedback.innerText = "CORRECT";
+            textFeedback.innerText = LANG.wcst_feedback_correct;
             textFeedback.className += " feedback-correct";
             playBeep(600, 0.15);
         } else {
-            textFeedback.innerText = "ERROR";
+            textFeedback.innerText = LANG.wcst_feedback_error;
             textFeedback.className += " feedback-error";
             playBeep(200, 0.3);
             
@@ -440,7 +441,7 @@
         deckDisplay.innerHTML = '';
         let textFeedback = document.createElement('div');
         textFeedback.className = 'text-feedback-node feedback-error';
-        textFeedback.innerText = "TOO SLOW";
+        textFeedback.innerText = LANG.wcst_feedback_too_slow;
         deckDisplay.appendChild(textFeedback);
         
         playBeep(150, 0.5);

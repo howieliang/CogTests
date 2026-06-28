@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Corsi Block-Tapping Task</title>
+    <title data-i18n="corsi_page_title">Corsi Block-Tapping Task</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -78,13 +78,14 @@
         }
 
     </style>
+    <script src="lang/lang.js"></script>
 </head>
 <body>
 
-<button onclick="window.location.href='index.html'" style="position:fixed;top:12px;left:12px;background-color:#95a5a6;color:white;border:none;padding:6px 14px;font-size:14px;border-radius:4px;cursor:pointer;z-index:10;">Back</button>
+<button data-i18n="back_btn" onclick="window.location.href='index.html'" style="position:fixed;top:12px;left:12px;background-color:#95a5a6;color:white;border:none;padding:6px 14px;font-size:14px;border-radius:4px;cursor:pointer;z-index:10;">Back</button>
 
-    <h1>Corsi Block Task</h1>
-    <div id="status">Press "Start Game" to begin</div>
+    <h1 data-i18n="corsi_heading">Corsi Block Task</h1>
+    <div id="status" data-i18n="corsi_status_start">Press "Start Game" to begin</div>
 
     <div id="grid-container" class="disabled">
         <div class="block" id="b1"></div>
@@ -99,7 +100,7 @@
     </div>
 
     <div id="controls">
-        <button id="start-btn" onclick="startGame()">Start Game</button>
+        <button id="start-btn" data-i18n="corsi_btn_start" onclick="startGame()">Start Game</button>
     </div>
 
     <script>
@@ -123,7 +124,7 @@
 
         function nextRound() {
             userSequence = [];
-            statusText.textContent = `Watch the sequence (Length: ${currentSequenceLength})`;
+            statusText.textContent = LANG.corsi_status_watch(currentSequenceLength);
             gridContainer.classList.add('disabled');
 
             // Generate a fresh random sequence for this round length
@@ -143,7 +144,7 @@
         function playSequence(index) {
             if (index >= sequence.length) {
                 // Sequence finished playing, hand over control to the user
-                statusText.textContent = "Your turn! Repeat the sequence.";
+                statusText.textContent = LANG.corsi_status_your_turn;
                 gridContainer.classList.remove('disabled');
                 return;
             }
@@ -181,12 +182,12 @@
                     lives--;
                     
                     if (lives > 0) {
-                        statusText.textContent = `Incorrect! You have ${lives} attempt left for this length.`;
+                        statusText.textContent = LANG.corsi_status_incorrect(lives);
                         setTimeout(nextRound, 2000);
                     } else {
                         // Game Over condition
-                        statusText.textContent = `Game Over! Your final Corsi Span is: ${currentSequenceLength - 1}`;
-                        startBtn.textContent = "Play Again";
+                        statusText.textContent = LANG.corsi_status_game_over(currentSequenceLength - 1);
+                        startBtn.textContent = LANG.corsi_btn_play_again;
                         startBtn.style.display = 'block';
                     }
                     return;
@@ -195,7 +196,7 @@
                 // Check if user successfully finished the entire current sequence
                 if (userSequence.length === sequence.length) {
                     gridContainer.classList.add('disabled');
-                    statusText.textContent = "Correct! Moving to next level...";
+                    statusText.textContent = LANG.corsi_status_correct;
                     currentSequenceLength++;
                     lives = 2; // Reset lives for the next sequence length
                     setTimeout(nextRound, 1500);

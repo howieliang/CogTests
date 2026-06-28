@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Visual Search Experiment</title>
+    <title data-i18n="vs_page_title">Visual Search Experiment</title>
     <style>
         * {
             box-sizing: border-box;
@@ -177,29 +177,30 @@
         .success { color: #38a169; }
         .error { color: #e53e3e; }
     </style>
+    <script src="lang/lang.js"></script>
 </head>
 <body>
 
-<button onclick="window.location.href='index.html'" style="position:fixed;top:12px;left:12px;background-color:#95a5a6;color:white;border:none;padding:6px 14px;font-size:14px;border-radius:4px;cursor:pointer;z-index:10;">Back</button>
+<button data-i18n="back_btn" onclick="window.location.href='index.html'" style="position:fixed;top:12px;left:12px;background-color:#95a5a6;color:white;border:none;padding:6px 14px;font-size:14px;border-radius:4px;cursor:pointer;z-index:10;">Back</button>
 
     <header>
-        <h1>Visual Search Task</h1>
-        <p class="instructions">Target: <strong>Red Circle</strong>. Spot it as fast as you can!</p>
+        <h1 data-i18n="vs_heading">Visual Search Task</h1>
+        <p class="instructions" data-i18n="vs_instructions">Target: <strong>Red Circle</strong>. Spot it as fast as you can!</p>
     </header>
 
     <div class="config-panel">
         <div class="control-row">
-            <label for="search-type">Type:</label>
+            <label for="search-type" data-i18n="vs_label_type">Type:</label>
             <select id="search-type">
-                <option value="feature">Feature (Easy)</option>
-                <option value="conjunction">Conjunction (Hard)</option>
+                <option value="feature" data-i18n="vs_option_feature">Feature (Easy)</option>
+                <option value="conjunction" data-i18n="vs_option_conjunction">Conjunction (Hard)</option>
             </select>
         </div>
         <div class="control-row">
-            <label for="item-count">Items: <span id="count-val">25</span></label>
+            <label for="item-count"><span data-i18n="vs_label_items">Items:</span> <span id="count-val">25</span></label>
             <input type="range" id="item-count" min="10" max="50" step="5" value="25">
         </div>
-        <button id="start-btn" class="btn-start">Start Next Trial</button>
+        <button id="start-btn" data-i18n="vs_btn_start" class="btn-start">Start Next Trial</button>
     </div>
 
     <div id="display-container">
@@ -209,8 +210,8 @@
     <div id="feedback"></div>
 
     <div class="response-panel">
-        <button id="absent-btn" class="btn-response btn-absent" disabled>Absent</button>
-        <button id="present-btn" class="btn-response btn-present" disabled>Present</button>
+        <button id="absent-btn" data-i18n="vs_btn_absent" class="btn-response btn-absent" disabled>Absent</button>
+        <button id="present-btn" data-i18n="vs_btn_present" class="btn-response btn-present" disabled>Present</button>
     </div>
 
     <script>
@@ -359,10 +360,10 @@
             
             if (isCorrect) {
                 feedback.className = "success";
-                feedback.innerHTML = `Correct! &#9989; Response Time: ${reactionTime}ms`;
+                feedback.innerHTML = LANG.vs_feedback_correct(reactionTime);
             } else {
                 feedback.className = "error";
-                feedback.innerHTML = `Incorrect &#10060; Target was actually ${targetPresent ? 'Present' : 'Absent'}.`;
+                feedback.innerHTML = LANG.vs_feedback_incorrect(targetPresent);
             }
         }
     </script>
