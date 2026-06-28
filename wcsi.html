@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wisconsin Card Sorting Test (WCST)</title>
+    <style>
+        body {
+            background-color: #f4f4f9;
+            color: #333;
+            font-family: 'Arial', sans-serif;
+            font-size: 18px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            overflow: hidden;
+            user-select: none;
+        }
+
+        #experiment-container {
+            width: 800px;
+            height: 600px;
+            background-color: #fff;
+            border: 2px solid #ddd;
+            border-radius: 10px;
+            position: relative;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+
+        .screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 40px;
+            box-sizing: border-box;
+            text-align: center;
+        }
+
+        .hidden { display: none !important; }
+
+        button {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            font-size: 18px;
+            cursor: pointer;
+            margin-top: 20px;
+            border-radius: 4px;
+            font-weight: bold;
+        }
+
+        button:hover { background-color: #2980b9; }
+
+        /* Target cards wrapper container */
+        #targets-container {
+            position: absolute;
+            top: 100px; 
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 40px;
+        }
+
+        /* Relative container handles precise relative overlapping stack alignments */
+        .card-pile {
+            position: relative;
+            width: 100px;
+            height: 100px;
+            cursor: pointer;
+        }
+
+        /* Base Card Styling Rules */
+        .card {
+            width: 100px;
+            height: 100px;
+            background-color: white;
+            border: 2px solid #777;
+            border-radius: 6px;
+            position: absolute;
+            top: 0;
+            left: 0;
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            grid-template-rows: repeat(2, 1fr);
+            justify-items: center;
+            align-items: center;
+            box-sizing: border-box;
+            padding: 5px;
+            transition: transform 0.1s;
+        }
+        
+        .card-pile:hover .card.target-base { 
+            transform: scale(1.05); 
+        }
+
+        /* Feedback Answer card perfectly overlaying right beneath the targeted item pile */
+        .card.feedback-overlay {
+            top: 120px; /* Offset to appear perfectly below the target card */
+            box-shadow: 0 4px 8px rgba(0,0,0,0.5);
+            animation: fadeIn 0.1s ease-out;
+        }
+
+        /* Feedback text string evaluation container */
+        .text-feedback-node {
+            position: absolute;
+            top: 230px;
+            width: 120px;
+            left: -10px;
+            font-weight: bold;
+            font-size: 20px;
+            text-align: center;
+            text-transform: uppercase;
+        }
+
+        /* Deck Card standard setup */
+        #deck-container {
+            position: absolute;
+            top: 400px; 
+            left: 100px; 
+        }
+
+        .feedback-correct { color: #27ae60; }
+        .feedback-error { color: #e74c3c; }
+
+        /* Standard Generative Graphics styling rulesets */
+        .shape { width: 24px; height: 24px; position: relative; box-sizing: border-box; }
+        .red { background-color: red; color: red; }
+        .green { background-color: green; color: green; }
+        .blue { background-color: blue; color: blue; }
+        .yellow { background-color: #e6b800; color: #e6b800; }
+        
+        .circle { border-radius: 50%; }
+        
+        .triangle {
+            background-color: transparent !important;
+            width: 0; height: 0;
+            border-left: 12px solid transparent;
+            border-right: 12px solid transparent;
+            border-bottom: 24px solid;
+        }
+
+        .cross { background-color: transparent !important; }
+        .cross::before, .cross::after { content: ""; position: absolute; background: currentColor; }
+        .cross::before { top: 9px; left: 0; width: 24px; height: 6px; }
+        .cross::after { top: 0; left: 9px; width: 6px; height: 24px; }
+
+        /* Ultra-stable, fail-proof Diamond using basic CSS transitions instead of Clip-paths */
+        .diamond {
+            transform: rotate(45deg);
+            width: 18px;
+            height: 18px;
+        }
+
+        /* Grid setups per distinct item count to distribute shapes uniformly */
+        .count-1 .shape:nth-child(1) { grid-column: 1 / span 2; grid-row: 1 / span 2; }
+        .count-2 .shape:nth-child(1) { grid-column: 1 / span 2; grid-row: 1; margin-top: 5px; }
+        .count-2 .shape:nth-child(2) { grid-column: 1 / span 2; grid-row: 2; margin-bottom: 5px; }
+        .count-3 .shape:nth-child(1) { grid-column: 1; grid-row: 1; margin-left: 5px; }
+        .count-3 .shape:nth-child(2) { grid-column: 2; grid-row: 1; margin-right: 5px; }
+        .count-3 .shape:nth-child(3) { grid-column: 1 / span 2; grid-row: 2; margin-bottom: 5px; }
+
+        .stats-table { text-align: left; margin-top: 20px; font-size: 20px; color: #333; line-height: 1.6; }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: scale(0.9); }
+            to { opacity: 1; transform: scale(1); }
+        }
+    </style>
+</head>
+<body>
+
+<button onclick="window.location.href='index.html'" style="position:fixed;top:12px;left:12px;background-color:#95a5a6;color:white;border:none;padding:6px 14px;font-size:14px;border-radius:4px;cursor:pointer;z-index:10;">Back</button>
+
+<div id="experiment-container">
+    
+    <div id="screen-title" class="screen">
+        <h1>Wisconsin Card Sorting Test</h1>
+        <p>PsyToolkit JS Implementation</p>
+        <button onclick="nextInstruction(1)">Start</button>
+    </div>
+
+    <div id="screen-ins1" class="screen hidden">
+        <h2>Instructions (1/3)</h2>
+        <p>You will see four target cards at the top of the screen.</p>
+        <p>A new card will appear at the bottom-left of the screen on every turn.</p>
+        <button onclick="nextInstruction(2)">Next</button>
+    </div>
+
+    <div id="screen-ins2" class="screen hidden">
+        <h2>Instructions (2/3)</h2>
+        <p>Your task is to match the bottom card to one of the four target cards by clicking your choice.</p>
+        <p>The computer will tell you if your match is correct or wrong.</p>
+        <button onclick="nextInstruction(3)">Next</button>
+    </div>
+
+    <div id="screen-ins3" class="screen hidden">
+        <h2>Instructions (3/3)</h2>
+        <p>The matching rule might change without warning during the test.</p>
+        <p>Use the feedback to figure out the current correct rule.</p>
+        <button onclick="startTest()">Begin Test</button>
+    </div>
+
+    <div id="screen-task" class="screen hidden">
+        <div id="targets-container">
+            <div class="card-pile" id="pile-1" onclick="handleCardClick(1)">
+                <div class="card target-base count-1"><div class="shape triangle red"></div></div>
+            </div>
+            <div class="card-pile" id="pile-2" onclick="handleCardClick(2)">
+                <div class="card target-base count-2"><div class="shape diamond green"></div><div class="shape diamond green"></div></div>
+            </div>
+            <div class="card-pile" id="pile-3" onclick="handleCardClick(3)">
+                <div class="card target-base count-3"><div class="shape cross yellow"></div><div class="shape cross yellow"></div><div class="shape cross yellow"></div></div>
+            </div>
+            <div class="card-pile" id="pile-4" onclick="handleCardClick(4)">
+                <div class="card target-base count-4"><div class="shape circle blue"></div><div class="shape circle blue"></div><div class="shape circle blue"></div><div class="shape circle blue"></div></div>
+            </div>
+        </div>
+
+        <div id="deck-container"></div>
+    </div>
+
+    <div id="screen-feedback" class="screen hidden">
+        <h2>Feedback on your WCST performance</h2>
+        <p style="font-size: 16px; margin-top:-10px;">(Note: There were in total 60 trials)</p>
+        
+        <table class="stats-table">
+            <tr><td>Error count:</td><td id="num-errors" style="padding-left:30px;"></td><td id="perc-errors"></td></tr>
+            <tr><td>Perseveration error count:</td><td id="num-pers" style="padding-left:30px;"></td><td id="perc-pers"></td></tr>
+            <tr><td>Non-perseveration error count:</td><td id="num-nonpers" style="padding-left:30px;"></td><td id="perc-nonpers"></td></tr>
+        </table>
+        
+        <p style="margin-top: 40px; font-size:16px; color:#aaa;">Press space bar or click below to restart</p>
+        <button onclick="location.reload()">Restart Test</button>
+    </div>
+
+</div>
+
+<script>
+    const SHAPES = ['circle', 'triangle', 'cross', 'diamond']; // Replaced 'star' with 'diamond'
+    const COLORS = ['blue', 'green', 'red', 'yellow'];
+    const COUNTS = [1, 2, 3, 4];
+
+    const TARGETS = {
+        1: { count: 1, color: 'red', shape: 'triangle' },
+        2: { count: 2, color: 'green', shape: 'diamond' }, // Target 2 updated
+        3: { count: 3, color: 'yellow', shape: 'cross' },
+        4: { count: 4, color: 'blue', shape: 'circle' }
+    };
+
+    let wcstTable = [];
+    let currentTrialIndex = 0;
+    let acceptInput = false;
+    let startTime = 0;
+    let timeoutTimer = null;
+
+    let totalErrors = 0;
+    let perseverationErrors = 0;
+    let nonPerseverationErrors = 0;
+
+    function generateTrialSequence() {
+        let rulesList = ['color', 'shape', 'count'];
+        let ruleIndex = 0;
+        
+        for (let i = 0; i < 60; i++) {
+            let randShape = SHAPES[Math.floor(Math.random() * 4)];
+            let randColor = COLORS[Math.floor(Math.random() * 4)];
+            let randCount = COUNTS[Math.floor(Math.random() * 4)];
+
+            if (i > 0 && i % 5 === 0) { 
+                ruleIndex = (ruleIndex + 1) % 3; 
+            }
+            
+            let rule = rulesList[ruleIndex];
+            let correctTarget = 0;
+            for (let t = 1; t <= 4; t++) {
+                if (rule === 'color' && TARGETS[t].color === randColor) correctTarget = t;
+                if (rule === 'shape' && TARGETS[t].shape === randShape) correctTarget = t;
+                if (rule === 'count' && TARGETS[t].count === randCount) correctTarget = t;
+            }
+
+            let prevRuleIndex = ruleIndex === 0 ? 2 : ruleIndex - 1;
+            let prevRule = rulesList[prevRuleIndex];
+            let prevTarget = 0;
+            for (let t = 1; t <= 4; t++) {
+                if (prevRule === 'color' && TARGETS[t].color === randColor) prevTarget = t;
+                if (prevRule === 'shape' && TARGETS[t].shape === randShape) prevTarget = t;
+                if (prevRule === 'count' && TARGETS[t].count === randCount) prevTarget = t;
+            }
+
+            wcstTable.push({
+                trialNum: i + 1,
+                cardData: { count: randCount, color: randColor, shape: randShape },
+                correctResponse: correctTarget,
+                prevResponse: prevTarget,
+                ruleName: rule
+            });
+        }
+    }
+
+    function nextInstruction(step) {
+        document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
+        document.getElementById(`screen-ins${step}`).classList.remove('hidden');
+    }
+
+    function startTest() {
+        generateTrialSequence();
+        document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
+        document.getElementById('screen-task').classList.remove('hidden');
+        runTrial();
+    }
+
+    function createCardElement(cardData, extraClass = '') {
+        let cardDiv = document.createElement('div');
+        cardDiv.className = `card count-${cardData.count} ${extraClass}`;
+        for (let i = 0; i < cardData.count; i++) {
+            let shapeDiv = document.createElement('div');
+            shapeDiv.className = `shape ${cardData.shape} ${cardData.color}`;
+            cardDiv.appendChild(shapeDiv);
+        }
+        return cardDiv;
+    }
+
+    function clearOldFeedback() {
+        document.querySelectorAll('.feedback-overlay, .text-feedback-node').forEach(el => el.remove());
+    }
+
+    function runTrial() {
+        if (currentTrialIndex >= 60) {
+            endBlock();
+            return;
+        }
+
+        document.getElementById('deck-container').innerHTML = '';
+        clearOldFeedback();
+
+        let currentTrial = wcstTable[currentTrialIndex];
+        
+        setTimeout(() => {
+            let cardElement = createCardElement(currentTrial.cardData);
+            document.getElementById('deck-container').appendChild(cardElement);
+            
+            acceptInput = true;
+            startTime = performance.now();
+
+            timeoutTimer = setTimeout(() => {
+                handleTimeout();
+            }, 10000);
+        }, 1000);
+    }
+
+    function handleCardClick(clickedPile) {
+        if (!acceptInput) return;
+        clearTimeout(timeoutTimer);
+        acceptInput = false;
+
+        let currentTrial = wcstTable[currentTrialIndex];
+        let rt = performance.now() - startTime;
+        
+        document.getElementById('deck-container').innerHTML = '';
+
+        let TargetPileContainer = document.getElementById(`pile-${clickedPile}`);
+        
+        let overlayCard = createCardElement(currentTrial.cardData, 'feedback-overlay');
+        TargetPileContainer.appendChild(overlayCard);
+
+        let textFeedback = document.createElement('div');
+        textFeedback.className = 'text-feedback-node';
+        TargetPileContainer.appendChild(textFeedback);
+
+        let isCorrect = (clickedPile === currentTrial.correctResponse);
+        let anyError = 0;
+        let perseverationError = 0;
+        let nonPerseverationError = 0;
+
+        if (isCorrect) {
+            textFeedback.innerText = "CORRECT";
+            textFeedback.className += " feedback-correct";
+            playBeep(600, 0.15);
+        } else {
+            textFeedback.innerText = "ERROR";
+            textFeedback.className += " feedback-error";
+            playBeep(200, 0.3);
+            
+            anyError = 1;
+            totalErrors++;
+            
+            if (clickedPile === currentTrial.prevResponse) {
+                perseverationError = 1;
+                perseverationErrors++;
+            } else {
+                nonPerseverationError = 1;
+                nonPerseverationErrors++;
+            }
+        }
+
+        setTimeout(() => {
+            currentTrialIndex++;
+            runTrial();
+        }, 1500); 
+    }
+
+    function handleTimeout() {
+        acceptInput = false;
+        document.getElementById('deck-container').innerHTML = '';
+        
+        let targetContainer = document.getElementById('targets-container');
+        let textFeedback = document.createElement('div');
+        textFeedback.className = 'text-feedback-node';
+        textFeedback.style.position = 'absolute';
+        textFeedback.style.top = '140px';
+        textFeedback.style.left = '50%';
+        textFeedback.style.transform = 'translateX(-50%)';
+        textFeedback.style.width = '200px';
+        textFeedback.innerText = "TOO SLOW";
+        textFeedback.className += " feedback-error";
+        targetContainer.appendChild(textFeedback);
+        
+        playBeep(150, 0.5);
+
+        totalErrors++;
+        nonPerseverationErrors++;
+
+        setTimeout(() => {
+            currentTrialIndex++;
+            runTrial();
+        }, 1500);
+    }
+
+    function playBeep(freq, duration) {
+        try {
+            let audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            let oscillator = audioCtx.createOscillator();
+            let gainNode = audioCtx.createGain();
+            oscillator.type = 'sine';
+            oscillator.frequency.value = freq;
+            gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime);
+            oscillator.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+            oscillator.start();
+            oscillator.stop(audioCtx.currentTime + duration);
+        } catch(e) {
+            console.log("Audio contextual drivers locked.");
+        }
+    }
+
+    function endBlock() {
+        document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
+        let feedbackScreen = document.getElementById('screen-feedback');
+        feedbackScreen.classList.remove('hidden');
+
+        let totalTrials = 60;
+        let percErrors = ((totalErrors / totalTrials) * 100).toFixed(1);
+        let percPers = ((perseverationErrors / totalTrials) * 100).toFixed(1);
+        let percNonPers = ((nonPerseverationErrors / totalTrials) * 100).toFixed(1);
+
+        document.getElementById('num-errors').innerText = totalErrors;
+        document.getElementById('perc-errors').innerText = `(${percErrors}%)`;
+        
+        document.getElementById('num-pers').innerText = perseverationErrors;
+        document.getElementById('perc-pers').innerText = `(${percPers}%)`;
+        
+        document.getElementById('num-nonpers').innerText = nonPerseverationErrors;
+        document.getElementById('perc-nonpers').innerText = `(${percNonPers}%)`;
+
+        window.addEventListener('keydown', function handleSpace(e) {
+            if (e.code === 'Space') {
+                window.removeEventListener('keydown', handleSpace);
+                location.reload();
+            }
+        });
+    }
+</script>
+
+</body>
+</html>

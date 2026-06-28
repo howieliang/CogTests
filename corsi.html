@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Corsi Block-Tapping Task</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f9;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 5px;
+        }
+
+        #status {
+            font-size: 1.2rem;
+            margin-bottom: 20px;
+            font-weight: bold;
+            color: #555;
+        }
+
+        /* The 3x3 grid container */
+        #grid-container {
+            display: grid;
+            grid-template-columns: repeat(3, 100px);
+            grid-template-rows: repeat(3, 100px);
+            gap: 25px;
+            background: #fff;
+            padding: 25px;
+            border-radius: 10px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        /* The blocks */
+        .block {
+            background-color: #3498db;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+        }
+
+        /* Active flash state */
+        .block.flash {
+            background-color: #e74c3c !important;
+        }
+
+        /* Disabled state when user shouldn't click */
+        .disabled {
+            pointer-events: none;
+        }
+
+        #controls {
+            margin-top: 20px;
+        }
+
+        button {
+            padding: 10px 20px;
+            font-size: 1rem;
+            background-color: #2ecc71;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        button:hover {
+            background-color: #27ae60;
+        }
+
+        #back-btn {
+            background-color: #95a5a6;
+        }
+
+        #back-btn:hover {
+            background-color: #7f8c8d;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Corsi Block Task</h1>
+    <div id="status">Press "Start Game" to begin</div>
+
+    <div id="grid-container" class="disabled">
+        <div class="block" id="b1"></div>
+        <div class="block" id="b2"></div>
+        <div class="block" id="b3"></div>
+        <div class="block" id="b4"></div>
+        <div class="block" id="b5"></div>
+        <div class="block" id="b6"></div>
+        <div class="block" id="b7"></div>
+        <div class="block" id="b8"></div>
+        <div class="block" id="b9"></div>
+    </div>
+
+    <div id="controls">
+        <button id="start-btn" onclick="startGame()">Start Game</button>
+        <button id="back-btn" onclick="window.location.href='index.html'">Back to Menu</button>
+    </div>
+
+    <script>
+        const blocks = Array.from(document.querySelectorAll('.block'));
+        const gridContainer = document.getElementById('grid-container');
+        const statusText = document.getElementById('status');
+        const startBtn = document.getElementById('start-btn');
+
+        let sequence = [];
+        let userSequence = [];
+        let currentSequenceLength = 2; // Starts with a 2-block span
+        let lives = 2; // Allowed 2 failed attempts per length
+
+        function startGame() {
+            sequence = [];
+            currentSequenceLength = 2;
+            lives = 2;
+            startBtn.style.display = 'none';
+            nextRound();
+        }
+
+        function nextRound() {
+            userSequence = [];
+            statusText.textContent = `Watch the sequence (Length: ${currentSequenceLength})`;
+            gridContainer.classList.add('disabled');
+
+            // Generate a fresh random sequence for this round length
+            sequence = [];
+            while (sequence.length < currentSequenceLength) {
+                const randomBlock = blocks[Math.floor(Math.random() * blocks.length)];
+                // Avoid back-to-back duplicate taps on the exact same block
+                if (sequence.length === 0 || sequence[sequence.length - 1] !== randomBlock) {
+                    sequence.push(randomBlock);
+                }
+            }
+
+            // Play the generated sequence to the user
+            playSequence(0);
+        }
+
+        function playSequence(index) {
+            if (index >= sequence.length) {
+                // Sequence finished playing, hand over control to the user
+                statusText.textContent = "Your turn! Repeat the sequence.";
+                gridContainer.classList.remove('disabled');
+                return;
+            }
+
+            const currentBlock = sequence[index];
+            
+            // Flash the block
+            setTimeout(() => {
+                currentBlock.classList.add('flash');
+                setTimeout(() => {
+                    currentBlock.classList.remove('flash');
+                    // Move to the next block in the sequence after a short delay
+                    setTimeout(() => {
+                        playSequence(index + 1);
+                    }, 300);
+                }, 600); // How long the block stays lit
+            }, 200);
+        }
+
+        // Handle user clicking the blocks
+        blocks.forEach(block => {
+            block.addEventListener('click', (e) => {
+                const clickedBlock = e.target;
+                
+                // Visual feedback for user click
+                clickedBlock.classList.add('flash');
+                setTimeout(() => clickedBlock.classList.remove('flash'), 150);
+
+                userSequence.push(clickedBlock);
+                const currentCheckIndex = userSequence.length - 1;
+
+                // Check if user clicked the wrong block
+                if (userSequence[currentCheckIndex] !== sequence[currentCheckIndex]) {
+                    gridContainer.classList.add('disabled');
+                    lives--;
+                    
+                    if (lives > 0) {
+                        statusText.textContent = `Incorrect! You have ${lives} attempt left for this length.`;
+                        setTimeout(nextRound, 2000);
+                    } else {
+                        // Game Over condition
+                        statusText.textContent = `Game Over! Your final Corsi Span is: ${currentSequenceLength - 1}`;
+                        startBtn.textContent = "Play Again";
+                        startBtn.style.display = 'block';
+                    }
+                    return;
+                }
+
+                // Check if user successfully finished the entire current sequence
+                if (userSequence.length === sequence.length) {
+                    gridContainer.classList.add('disabled');
+                    statusText.textContent = "Correct! Moving to next level...";
+                    currentSequenceLength++;
+                    lives = 2; // Reset lives for the next sequence length
+                    setTimeout(nextRound, 1500);
+                }
+            });
+        });
+    </script>
+</body>
+</html>

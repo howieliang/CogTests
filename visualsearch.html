@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Visual Search Experiment</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            background-color: #f5f7fa;
+            color: #333;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            padding: 10px;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 10px;
+            width: 100%;
+            max-width: 500px;
+        }
+
+        h1 {
+            font-size: 1.4rem;
+            color: #1a202c;
+        }
+
+        p.instructions {
+            font-size: 0.85rem;
+            color: #4a5568;
+            margin-top: 4px;
+        }
+
+        .config-panel {
+            background: white;
+            width: 100%;
+            max-width: 500px;
+            border-radius: 12px;
+            padding: 12px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            margin-bottom: 10px;
+        }
+
+        .control-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .control-row:last-child {
+            margin-bottom: 0;
+        }
+
+        label {
+            font-size: 0.9rem;
+            font-weight: 600;
+        }
+
+        select, input[type="range"] {
+            padding: 6px;
+            border-radius: 6px;
+            border: 1px solid #cbd5e0;
+            font-size: 0.9rem;
+            width: 55%;
+        }
+
+        .btn-start {
+            width: 100%;
+            background-color: #3182ce;
+            color: white;
+            border: none;
+            padding: 12px;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: bold;
+            margin-top: 4px;
+            cursor: pointer;
+        }
+
+        .btn-start:active {
+            background-color: #2b6cb0;
+        }
+
+        /* Search Canvas Container */
+        #display-container {
+            width: 100%;
+            max-width: 500px;
+            aspect-ratio: 1 / 1;
+            background-color: #ffffff;
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        #fixation-cross {
+            font-size: 2rem;
+            color: #a0aec0;
+            display: none;
+        }
+
+        .search-item {
+            position: absolute;
+            transform: translate(-50%, -50%);
+            transition: opacity 0.1s ease;
+        }
+
+        /* Shapes */
+        .circle {
+            border-radius: 50%;
+        }
+        .square {
+            border-radius: 4px;
+        }
+        .red {
+            background-color: #e53e3e;
+        }
+        .blue {
+            background-color: #3182ce;
+        }
+
+        /* Response Panel */
+        .response-panel {
+            width: 100%;
+            max-width: 500px;
+            display: flex;
+            gap: 12px;
+            margin-top: 12px;
+        }
+
+        .btn-response {
+            flex: 1;
+            padding: 16px;
+            border: none;
+            border-radius: 10px;
+            font-size: 1.1rem;
+            font-weight: bold;
+            color: white;
+            cursor: pointer;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .btn-present { background-color: #38a169; }
+        .btn-present:active { background-color: #2f855a; }
+        .btn-absent { background-color: #e53e3e; }
+        .btn-absent:active { background-color: #c53030; }
+
+        .btn-response:disabled, .btn-start:disabled {
+            background-color: #cbd5e0;
+            cursor: not-allowed;
+        }
+
+        /* Results Display */
+        #feedback {
+            margin-top: 10px;
+            font-size: 1.1rem;
+            font-weight: bold;
+            text-align: center;
+            height: 1.5rem;
+        }
+
+        .success { color: #38a169; }
+        .error { color: #e53e3e; }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>Visual Search Task</h1>
+        <p class="instructions">Target: <strong>Red Circle</strong>. Spot it as fast as you can!</p>
+    </header>
+
+    <div class="config-panel">
+        <div class="control-row">
+            <label for="search-type">Type:</label>
+            <select id="search-type">
+                <option value="feature">Feature (Easy)</option>
+                <option value="conjunction">Conjunction (Hard)</option>
+            </select>
+        </div>
+        <div class="control-row">
+            <label for="item-count">Items: <span id="count-val">25</span></label>
+            <input type="range" id="item-count" min="10" max="50" step="5" value="25">
+        </div>
+        <button id="start-btn" class="btn-start">Start Next Trial</button>
+        <button class="btn-start" style="background-color:#718096;margin-top:8px;" onclick="window.location.href='index.html'">Back to Menu</button>
+    </div>
+
+    <div id="display-container">
+        <div id="fixation-cross">+</div>
+    </div>
+
+    <div id="feedback"></div>
+
+    <div class="response-panel">
+        <button id="absent-btn" class="btn-response btn-absent" disabled>Absent</button>
+        <button id="present-btn" class="btn-response btn-present" disabled>Present</button>
+    </div>
+
+    <script>
+        // State Variables
+        let startTime = 0;
+        let targetPresent = false;
+        let isTrialActive = false;
+        const itemSize = 24; // Size of objects in pixels
+
+        // DOM Elements
+        const container = document.getElementById('display-container');
+        const fixation = document.getElementById('fixation-cross');
+        const startBtn = document.getElementById('start-btn');
+        const presentBtn = document.getElementById('present-btn');
+        const absentBtn = document.getElementById('absent-btn');
+        const feedback = document.getElementById('feedback');
+        const searchTypeSelect = document.getElementById('search-type');
+        const itemCountInput = document.getElementById('item-count');
+        const countValDisplay = document.getElementById('count-val');
+
+        // Update Slider Label
+        itemCountInput.addEventListener('input', (e) => {
+            countValDisplay.textContent = e.target.value;
+        });
+
+        startBtn.addEventListener('click', startTrial);
+        presentBtn.addEventListener('click', () => handleResponse(true));
+        absentBtn.addEventListener('click', () => handleResponse(false));
+
+        function startTrial() {
+            if (isTrialActive) return;
+            
+            // UI Reset
+            clearDisplay();
+            feedback.textContent = "";
+            startBtn.disabled = true;
+            
+            // Show Fixation Cross
+            fixation.style.display = 'block';
+
+            // Wait 600ms before showing stimuli
+            setTimeout(() => {
+                fixation.style.display = 'none';
+                generateStimuli();
+                isTrialActive = true;
+                presentBtn.disabled = false;
+                absentBtn.disabled = false;
+                startTime = performance.now();
+            }, 600);
+        }
+
+        function clearDisplay() {
+            const items = container.querySelectorAll('.search-item');
+            items.forEach(item => item.remove());
+        }
+
+        function generateStimuli() {
+            const totalItems = parseInt(itemCountInput.value);
+            const searchType = searchTypeSelect.value;
+            
+            // 50% chance target is present
+            targetPresent = Math.random() < 0.5;
+            
+            const distractorsCount = targetPresent ? totalItems - 1 : totalItems;
+            const positions = generateNonOverlappingPositions(totalItems);
+
+            let currentPosIdx = 0;
+
+            // 1. Render Target if Present (Red Circle)
+            if (targetPresent) {
+                createItem('circle', 'red', positions[currentPosIdx++]);
+            }
+
+            // 2. Render Distractors
+            for (let i = 0; i < distractorsCount; i++) {
+                const pos = positions[currentPosIdx++];
+                if (!pos) break;
+
+                if (searchType === 'feature') {
+                    // Feature search distractor: Always Blue Circle
+                    createItem('circle', 'blue', pos);
+                } else {
+                    // Conjunction search distractors: Mix of Blue Circles and Red Squares
+                    if (Math.random() < 0.5) {
+                        createItem('circle', 'blue', pos);
+                    } else {
+                        createItem('square', 'red', pos);
+                    }
+                }
+            }
+        }
+
+        function createItem(shape, color, pos) {
+            const el = document.createElement('div');
+            el.className = `search-item ${shape} ${color}`;
+            el.style.width = `${itemSize}px`;
+            el.style.height = `${itemSize}px`;
+            el.style.left = `${pos.x}%`;
+            el.style.top = `${pos.y}%`;
+            container.appendChild(el);
+        }
+
+        // Keep items from rendering on top of one another on tiny phone screens
+        function generateNonOverlappingPositions(count) {
+            const arr = [];
+            const minDistance = 8; // percentage-based padding margin
+            let attempts = 0;
+
+            while (arr.length < count && attempts < 1000) {
+                attempts++;
+                // Leave a 6% boundary margin from edges
+                const candidate = {
+                    x: Math.floor(Math.random() * 88) + 6,
+                    y: Math.floor(Math.random() * 88) + 6
+                };
+
+                let valid = true;
+                for (let i = 0; i < arr.length; i++) {
+                    const dist = Math.hypot(arr[i].x - candidate.x, arr[i].y - candidate.y);
+                    if (dist < minDistance) {
+                        valid = false;
+                        break;
+                    }
+                }
+
+                if (valid) {
+                    arr.push(candidate);
+                }
+            }
+            return arr;
+        }
+
+        function handleResponse(userClickedPresent) {
+            if (!isTrialActive) return;
+            
+            const reactionTime = Math.round(performance.now() - startTime);
+            isTrialActive = false;
+            
+            // Disable response buttons, enable start button
+            presentBtn.disabled = true;
+            absentBtn.disabled = true;
+            startBtn.disabled = false;
+
+            // Score check
+            const isCorrect = (userClickedPresent === targetPresent);
+            
+            if (isCorrect) {
+                feedback.className = "success";
+                feedback.innerHTML = `Correct! &#9989; Response Time: ${reactionTime}ms`;
+            } else {
+                feedback.className = "error";
+                feedback.innerHTML = `Incorrect &#10060; Target was actually ${targetPresent ? 'Present' : 'Absent'}.`;
+            }
+        }
+    </script>
+</body>
+</html>
