@@ -127,7 +127,7 @@
         }
         .target-box {
             position: absolute;
-            top: 8%; /* Maps to -150 Y in PsyToolkit matrix */
+            top: calc(8% + 50px); /* dropped 50px to clear the progress bar */
             width: var(--card-width);
             aspect-ratio: 8 / 11;
             border: 4px dashed #999;
@@ -192,11 +192,11 @@
         /* Fly offsets are relative to the card size so they track the
            percentage-positioned target boxes at any board scale */
         .fly-left {
-            transform: translate(-80%, -170%) scale(0.8);
+            transform: translate(-80%, -128%) scale(0.8);
             transition: transform 1000ms linear;
         }
         .fly-right {
-            transform: translate(80%, -170%) scale(0.8);
+            transform: translate(80%, -128%) scale(0.8);
             transition: transform 1000ms linear;
         }
         .btn {

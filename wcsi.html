@@ -160,20 +160,28 @@
             transition: width 0.3s ease;
         }
 
-        /* Current card to sort */
+        /* 3x4 game grid: col 1 = candidate card (centered), col 2 = answer
+           slots, col 3 = target cards */
+        #game-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+            align-items: center;
+            justify-items: center;
+        }
+
+        /* Current card to sort, vertically centered in the first column */
         #deck-display {
             width: 80px;
             height: 80px;
             position: relative;
+            grid-column: 1;
+            grid-row: 1 / span 4;
+            align-self: center;
         }
 
-        /* 2x4 game grid: col 1 = answers, col 2 = targets */
-        #game-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 12px;
-            align-items: center;
-        }
+        .answer-slot { grid-column: 2; }
+        .card-pile { grid-column: 3; }
 
         /* Answer slots (column 1) */
         .answer-slot {
@@ -305,8 +313,8 @@
 
     <div id="screen-task" class="screen hidden">
         <div id="progress-bar-container"><div id="progress-bar"></div></div>
-        <div id="deck-display"></div>
         <div id="game-grid">
+            <div id="deck-display"></div>
             <div class="answer-slot" id="answer-1"></div>
             <div class="card-pile" id="pile-1" onclick="handleCardClick(1)">
                 <div class="card target-base count-1"><div class="shape triangle red"></div></div>
