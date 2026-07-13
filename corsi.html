@@ -22,6 +22,7 @@
 
         h1 {
             color: #333;
+            font-size: 1.2rem; /* 60% of the browser-default 2rem */
             margin-bottom: 5px;
         }
 
@@ -113,7 +114,7 @@
 <script>document.getElementById('user-badge').textContent = localStorage.getItem('cogtests_user_id') || 'guest';</script>
 
     <h1>Corsi Block Task</h1>
-    <p class="instructions">Watch the blocks light up, then tap them in the same order.</p>
+    <p class="instructions">Watch the blocks light up, tap them in the same order.</p>
 
     <div id="message-panel">
         <p id="message-text">The sequence starts at 2 blocks and grows as you succeed. You get two attempts at each length; the test ends when both attempts at a length fail.</p>
@@ -124,7 +125,7 @@
 
     <div id="status"></div>
 
-    <canvas id="board" class="disabled" width="440" height="640"></canvas>
+    <canvas id="board" class="disabled" width="440" height="590"></canvas>
 
     <script>
         // ─── Session logging ─────────────────────────────────────────────────────

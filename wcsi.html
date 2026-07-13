@@ -24,8 +24,8 @@
 
         h1 {
             color: #333;
-            font-size: 2rem;
-            margin: 0.67em 75px 5px; /* side margins keep clear of the fixed Back button */
+            font-size: 1.2rem; /* 60% of the previous 2rem */
+            margin: 44px 75px 5px; /* top margin clears the fixed Back/User row */
             text-align: center;
         }
 
@@ -69,7 +69,7 @@
 
         #experiment-container {
             width: min(92vw, 440px);
-            aspect-ratio: 2 / 3; /* same portrait board as the DCCS test */
+            aspect-ratio: 44 / 61; /* portrait board (440x610, 50px shorter than 2:3) */
             background-color: #fff;
             border: 2px solid #ddd;
             border-radius: 10px;
@@ -162,8 +162,8 @@
 
         /* Current card to sort */
         #deck-display {
-            width: 100px;
-            height: 100px;
+            width: 80px;
+            height: 80px;
             position: relative;
         }
 
@@ -177,8 +177,8 @@
 
         /* Answer slots (column 1) */
         .answer-slot {
-            width: 100px;
-            height: 100px;
+            width: 80px;
+            height: 80px;
             position: relative;
             border: 2px dashed #ddd;
             border-radius: 6px;
@@ -188,15 +188,15 @@
         /* Target card piles (column 2) */
         .card-pile {
             position: relative;
-            width: 100px;
-            height: 100px;
+            width: 80px;
+            height: 80px;
             cursor: pointer;
         }
 
         /* Base Card Styling Rules */
         .card {
-            width: 100px;
-            height: 100px;
+            width: 80px;
+            height: 80px;
             background-color: white;
             border: 2px solid #777;
             border-radius: 6px;
