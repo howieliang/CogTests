@@ -3,27 +3,73 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title data-i18n="wcst_page_title">Wisconsin Card Sorting Test (WCST)</title>
+    <title>Wisconsin Card Sorting Test (WCST)</title>
+    <link rel="icon" type="image/png" href="favicon.png">
+    <link rel="apple-touch-icon" href="favicon.png">
     <style>
         body {
             background-color: #f4f4f9;
             color: #333;
             font-family: 'Arial', sans-serif;
-            font-size: 18px;
             display: flex;
-            justify-content: center;
-            align-items: flex-start;
+            flex-direction: column;
+            justify-content: flex-start;
+            align-items: center;
             min-height: 100vh;
             margin: 0;
-            overflow: hidden;
+            padding: 15px 0;
+            box-sizing: border-box;
             user-select: none;
         }
 
-        #experiment-container {
+        h1 {
+            color: #333;
+            font-size: 2rem;
+            margin: 0.67em 75px 5px; /* side margins keep clear of the fixed Back button */
+            text-align: center;
+        }
+
+        h2 {
+            font-size: 1.2rem;
+            color: #333;
+        }
+
+        /* Always-visible task instruction under the title */
+        .instructions {
+            font-size: 0.9rem;
+            color: #555;
+            margin: 0 0 12px;
+            text-align: center;
+            max-width: 92vw;
+        }
+
+        /* Detailed instruction panel with the start button */
+        #message-panel {
+            background: #fff;
+            width: 440px;
+            max-width: 92vw;
+            border-radius: 10px;
+            padding: 16px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+            margin-bottom: 12px;
+            text-align: center;
+            box-sizing: border-box;
+        }
+
+        #message-text {
+            font-size: 0.95rem;
+            color: #555;
+            margin: 0 0 12px;
+        }
+
+        #start-btn {
             width: 100%;
-            max-width: 480px;
-            height: 100vh;
-            height: 100dvh;
+            margin-top: 0;
+        }
+
+        #experiment-container {
+            width: min(92vw, 440px);
+            aspect-ratio: 2 / 3; /* same portrait board as the DCCS test */
             background-color: #fff;
             border: 2px solid #ddd;
             border-radius: 10px;
@@ -53,11 +99,11 @@
             background-color: #3498db;
             color: white;
             border: none;
-            padding: 10px 20px;
-            font-size: 18px;
+            padding: 12px 24px;
+            font-size: 1rem;
             cursor: pointer;
             margin-top: 20px;
-            border-radius: 4px;
+            border-radius: 8px;
             font-weight: bold;
         }
 
@@ -69,6 +115,49 @@
             justify-content: center;
             gap: 16px;
             padding: 20px 16px;
+        }
+
+        /* Session progress bar (same style as the DCCS test) */
+        #progress-bar-container {
+            position: relative;
+            width: 80%;
+            height: 20px;
+            background-color: #eee;
+            border-radius: 10px;
+            overflow: hidden;
+            flex-shrink: 0;
+        }
+
+        /* Milestone ticks at session quarters */
+        .progress-milestone {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            width: 2px;
+            background: rgba(0, 0, 0, 0.25);
+        }
+
+        /* Per-round 15s countdown at the bottom */
+        #countdown-container {
+            width: 80%;
+            height: 12px;
+            background-color: #f0f0f0;
+            border-radius: 6px;
+            overflow: hidden;
+            flex-shrink: 0;
+        }
+
+        #countdown-bar {
+            width: 100%;
+            height: 100%;
+            background-color: #b0b0b0;
+        }
+
+        #progress-bar {
+            width: 0%;
+            height: 100%;
+            background-color: #2ecc71;
+            transition: width 0.3s ease;
         }
 
         /* Current card to sort */
@@ -135,18 +224,22 @@
             animation: fadeIn 0.1s ease-out;
         }
 
-        /* Feedback text above the answer slot */
+        /* Feedback text centered on the answer slot / deck, kept inside its
+           own tile so it never overlaps neighboring elements */
         .text-feedback-node {
             position: absolute;
-            top: -24px;
+            top: 50%;
             left: 50%;
-            transform: translateX(-50%);
-            width: 110px;
+            transform: translate(-50%, -50%);
+            padding: 3px 8px;
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 6px;
             font-weight: bold;
             font-size: 14px;
             text-align: center;
             text-transform: uppercase;
             white-space: nowrap;
+            z-index: 2;
         }
 
         .feedback-correct { color: #27ae60; }
@@ -174,11 +267,9 @@
         .cross::before { top: 9px; left: 0; width: 24px; height: 6px; }
         .cross::after { top: 0; left: 9px; width: 6px; height: 24px; }
 
-        /* Ultra-stable, fail-proof Diamond using basic CSS transitions instead of Clip-paths */
-        .diamond {
-            transform: rotate(45deg);
-            width: 18px;
-            height: 18px;
+        /* Five-point star */
+        .star {
+            clip-path: polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%);
         }
 
         /* Grid setups per distinct item count to distribute shapes uniformly */
@@ -189,49 +280,31 @@
         .count-3 .shape:nth-child(2) { grid-column: 2; grid-row: 1; margin-right: 5px; }
         .count-3 .shape:nth-child(3) { grid-column: 1 / span 2; grid-row: 2; margin-bottom: 5px; }
 
-        .stats-table { text-align: left; margin-top: 20px; font-size: 20px; color: #333; line-height: 1.6; }
-        
         @keyframes fadeIn {
             from { opacity: 0; transform: scale(0.9); }
             to { opacity: 1; transform: scale(1); }
         }
     </style>
-    <script src="lang/lang.js"></script>
 </head>
 <body>
 
-<button data-i18n="back_btn" onclick="window.location.href='index.html'" style="position:fixed;top:12px;left:12px;background-color:#95a5a6;color:white;border:none;padding:6px 14px;font-size:14px;border-radius:4px;cursor:pointer;z-index:10;">Back</button>
+<button onclick="window.location.href='index.html'" style="position:fixed;top:12px;left:12px;background-color:#95a5a6;color:white;border:none;padding:6px 14px;font-size:14px;border-radius:4px;cursor:pointer;z-index:10;">Back</button>
+
+<div style="position:fixed;top:12px;right:12px;background-color:#e8e8ee;color:#555;padding:6px 14px;font-size:14px;border-radius:4px;z-index:10;">User: <span id="user-badge"></span></div>
+<script>document.getElementById('user-badge').textContent = localStorage.getItem('cogtests_user_id') || 'guest';</script>
+
+<h1>Wisconsin Card Sorting Test</h1>
+<p class="instructions">Match the top card to one of the four target cards by tapping it.</p>
+
+<div id="message-panel">
+    <p id="message-text">A new card appears at the top of the screen on every turn. Tap the target card you think it matches — the app tells you if you are correct or wrong. The matching rule may change without warning during the test; use the feedback to figure out the current rule.</p>
+    <button id="start-btn" onclick="startTest()">Start</button>
+</div>
 
 <div id="experiment-container">
-    
-    <div id="screen-title" class="screen">
-        <h1 data-i18n="wcst_heading">Wisconsin Card Sorting Test</h1>
-        <p data-i18n="wcst_subtitle">PsyToolkit JS Implementation</p>
-        <button data-i18n="wcst_btn_start" onclick="nextInstruction(1)">Start</button>
-    </div>
-
-    <div id="screen-ins1" class="screen hidden">
-        <h2 data-i18n="wcst_ins1_title">Instructions (1/3)</h2>
-        <p data-i18n="wcst_ins1_p1">You will see four target cards on the right side of the screen.</p>
-        <p data-i18n="wcst_ins1_p2">A new card will appear at the top of the screen on every turn.</p>
-        <button data-i18n="wcst_btn_next" onclick="nextInstruction(2)">Next</button>
-    </div>
-
-    <div id="screen-ins2" class="screen hidden">
-        <h2 data-i18n="wcst_ins2_title">Instructions (2/3)</h2>
-        <p data-i18n="wcst_ins2_p1">Your task is to match the top card to one of the four target cards by tapping your choice.</p>
-        <p data-i18n="wcst_ins2_p2">The app will tell you if your match is correct or wrong.</p>
-        <button data-i18n="wcst_btn_next" onclick="nextInstruction(3)">Next</button>
-    </div>
-
-    <div id="screen-ins3" class="screen hidden">
-        <h2 data-i18n="wcst_ins3_title">Instructions (3/3)</h2>
-        <p data-i18n="wcst_ins3_p1">The matching rule might change without warning during the test.</p>
-        <p data-i18n="wcst_ins3_p2">Use the feedback to figure out the current correct rule.</p>
-        <button data-i18n="wcst_btn_begin" onclick="startTest()">Begin Test</button>
-    </div>
 
     <div id="screen-task" class="screen hidden">
+        <div id="progress-bar-container"><div id="progress-bar"></div></div>
         <div id="deck-display"></div>
         <div id="game-grid">
             <div class="answer-slot" id="answer-1"></div>
@@ -240,7 +313,7 @@
             </div>
             <div class="answer-slot" id="answer-2"></div>
             <div class="card-pile" id="pile-2" onclick="handleCardClick(2)">
-                <div class="card target-base count-2"><div class="shape diamond green"></div><div class="shape diamond green"></div></div>
+                <div class="card target-base count-2"><div class="shape star green"></div><div class="shape star green"></div></div>
             </div>
             <div class="answer-slot" id="answer-3"></div>
             <div class="card-pile" id="pile-3" onclick="handleCardClick(3)">
@@ -251,32 +324,140 @@
                 <div class="card target-base count-4"><div class="shape circle blue"></div><div class="shape circle blue"></div><div class="shape circle blue"></div><div class="shape circle blue"></div></div>
             </div>
         </div>
+        <div id="countdown-container"><div id="countdown-bar"></div></div>
     </div>
 
     <div id="screen-feedback" class="screen hidden">
-        <h2 data-i18n="wcst_results_title">Feedback on your WCST performance</h2>
-        <p data-i18n="wcst_results_note" style="font-size: 16px; margin-top:-10px;">(Note: There were in total 60 trials)</p>
-
-        <table class="stats-table">
-            <tr><td data-i18n="wcst_stats_errors">Error count:</td><td id="num-errors" style="padding-left:30px;"></td><td id="perc-errors"></td></tr>
-            <tr><td data-i18n="wcst_stats_pers">Perseveration error count:</td><td id="num-pers" style="padding-left:30px;"></td><td id="perc-pers"></td></tr>
-            <tr><td data-i18n="wcst_stats_nonpers">Non-perseveration error count:</td><td id="num-nonpers" style="padding-left:30px;"></td><td id="perc-nonpers"></td></tr>
-        </table>
-
-        <p data-i18n="wcst_results_restart" style="margin-top: 40px; font-size:16px; color:#aaa;">Press space bar or tap below to restart</p>
-        <button data-i18n="wcst_btn_restart" onclick="location.reload()">Restart Test</button>
+        <h2>Thank You! Task Completed.</h2>
+        <button onclick="location.reload()">Try Again</button>
     </div>
 
 </div>
 
 <script>
-    const SHAPES = ['circle', 'triangle', 'cross', 'diamond']; // Replaced 'star' with 'diamond'
+    // ─── Session logging ─────────────────────────────────────────────────────
+    // One entry per completed session: user id, game type, timestamp, metrics.
+    // Entries print to the console (filter: COGTEST_LOG) and accumulate in
+    // `sessionLog`, mirrored to sessionStorage so the array survives page
+    // navigation within the tab. Inspect with `sessionLog` / console.table(sessionLog).
+    const SESSION_LOG_KEY = 'cogtests_session_log';
+    const sessionLog = (() => {
+        try { return JSON.parse(sessionStorage.getItem(SESSION_LOG_KEY)) || []; }
+        catch (e) { return []; }
+    })();
+    window.sessionLog = sessionLog;
+
+    function formatTimestamp() {
+        const d = new Date();
+        const pad = n => String(n).padStart(2, '0');
+        return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}-`
+             + `${pad(d.getHours())}-${pad(d.getMinutes())}-${pad(d.getSeconds())}`;
+    }
+
+    function logSession(gameType, metrics) {
+        const entry = {
+            user_id: localStorage.getItem('cogtests_user_id') || 'guest',
+            game_type: gameType,
+            timestamp: formatTimestamp(),
+            ...metrics
+        };
+        sessionLog.push(entry);
+        try { sessionStorage.setItem(SESSION_LOG_KEY, JSON.stringify(sessionLog)); } catch (e) {}
+        console.log('COGTEST_LOG', entry);
+        if (typeof DF_GAME !== 'undefined') sendToDataFoundry(DF_GAME, entry);
+    }
+
+    const DF_GAME = 'wcst'; // this page's Data Foundry dataset
+    // ─── Remote logging: Data Foundry ────────────────────────────────────────
+    // Entries POST in real time to per-game datasets. Failed sends queue in
+    // localStorage and are retried on every page load, after each successful
+    // send, and manually from the index page's pending-log indicator.
+    const DF_SOURCE_ID = 'd257ec2928fb945e6';
+    const DF_CONFIGS = {
+        corsi: { dataset: '25600', activity: 'corsi', token: 'TUxwT2hGc3JqdEd2ZG5zTHZabWpQYjljaG81WldkMW1sd1lwbTNRNmY0dz0=' },
+        vst:   { dataset: '25601', activity: 'vst',   token: 'b0V4UDFLa3RJOVBNdkV0eE1JUGxRZTVYeVkwN3hhcEJDMW4zUE8wbjZ5Yz0=' },
+        dccs:  { dataset: '25602', activity: 'dccs',  token: 'RlhKYktxYmZRVzlxbjc0M1VJNWJaQlcyRkhpNk5oL3BZQVcxTXRndEg2Yz0=' },
+        wcst:  { dataset: '25603', activity: 'wcst',  token: 'Ynh2Q2xVZHhLSzNuUy9aS2Z3dkozMEhkMitEY25GV3FBM3VkaEZ5Rm9uaz0=' }
+    };
+    const PENDING_KEY = 'cogtests_pending_log';
+
+    function postToDF(game, entry) {
+        const cfg = DF_CONFIGS[game];
+        const data = { ...entry };
+        // Data Foundry rows are flat: nested trial arrays go as one JSON string field
+        if (data.trials !== undefined) data.trials = JSON.stringify(data.trials);
+        return fetch(`https://datafoundry.id.tue.nl/api/v1/datasets/ts/${cfg.dataset}?activity=${cfg.activity}`, {
+            method: 'POST',
+            mode: 'cors',
+            cache: 'no-cache',
+            headers: { 'Content-Type': 'application/json', 'api_token': cfg.token, 'source_id': DF_SOURCE_ID },
+            redirect: 'follow',
+            referrerPolicy: 'no-referrer',
+            body: JSON.stringify(data)
+        }).then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r; });
+    }
+
+    function getPending() {
+        try { return JSON.parse(localStorage.getItem(PENDING_KEY)) || []; }
+        catch (e) { return []; }
+    }
+
+    function setPending(queue) {
+        localStorage.setItem(PENDING_KEY, JSON.stringify(queue));
+        updatePendingIndicator();
+    }
+
+    function savePending(game, entry) {
+        const queue = getPending();
+        queue.push({ game, entry });
+        setPending(queue);
+    }
+
+    // The indicator elements only exist on index.html; no-op elsewhere
+    function updatePendingIndicator() {
+        const el = document.getElementById('pending-indicator');
+        if (!el) return;
+        const n = getPending().length;
+        el.style.display = n > 0 ? 'block' : 'none';
+        document.getElementById('pending-count').textContent = n;
+    }
+
+    function sendToDataFoundry(game, entry) {
+        postToDF(game, entry)
+            .then(() => { console.log('DF sent:', game, entry); drainPending(); })
+            .catch(err => { console.warn('DF send failed, saving locally:', err); savePending(game, entry); });
+    }
+
+    let _draining = false;
+    function drainPending() {
+        if (_draining) return;
+        const queue = getPending();
+        if (queue.length === 0) return;
+        _draining = true;
+        const item = queue[0];
+        postToDF(item.game, item.entry)
+            .then(() => {
+                console.log('DF drained entry:', item);
+                const q = getPending();
+                q.shift();
+                setPending(q);
+                _draining = false;
+                drainPending();
+            })
+            .catch(err => { console.warn('DF drain failed, will retry later:', err); _draining = false; });
+    }
+
+    // On load: show any pending count and retry stored entries
+    updatePendingIndicator();
+    drainPending();
+
+    const SHAPES = ['circle', 'triangle', 'cross', 'star'];
     const COLORS = ['blue', 'green', 'red', 'yellow'];
     const COUNTS = [1, 2, 3, 4];
 
     const TARGETS = {
         1: { count: 1, color: 'red', shape: 'triangle' },
-        2: { count: 2, color: 'green', shape: 'diamond' }, // Target 2 updated
+        2: { count: 2, color: 'green', shape: 'star' },
         3: { count: 3, color: 'yellow', shape: 'cross' },
         4: { count: 4, color: 'blue', shape: 'circle' }
     };
@@ -290,20 +471,30 @@
     let totalErrors = 0;
     let perseverationErrors = 0;
     let nonPerseverationErrors = 0;
+    let timeoutCount = 0; // Timeouts also count as non-perseveration errors
 
     function generateTrialSequence() {
         let rulesList = ['color', 'shape', 'count'];
         let ruleIndex = 0;
-        
+
+        // Randomized block lengths: the rule switches after 4, 6, or 8 trials
+        // (drawn fresh for each block) so the change stays unpredictable
+        const drawBlockLength = () => [4, 6, 8][Math.floor(Math.random() * 3)];
+        let blockLength = drawBlockLength();
+        let trialsInBlock = 0;
+
         for (let i = 0; i < 60; i++) {
             let randShape = SHAPES[Math.floor(Math.random() * 4)];
             let randColor = COLORS[Math.floor(Math.random() * 4)];
             let randCount = COUNTS[Math.floor(Math.random() * 4)];
 
-            if (i > 0 && i % 5 === 0) { 
-                ruleIndex = (ruleIndex + 1) % 3; 
+            if (trialsInBlock >= blockLength) {
+                ruleIndex = (ruleIndex + 1) % 3;
+                trialsInBlock = 0;
+                blockLength = drawBlockLength();
             }
-            
+            trialsInBlock++;
+
             let rule = rulesList[ruleIndex];
             let correctTarget = 0;
             for (let t = 1; t <= 4; t++) {
@@ -331,12 +522,9 @@
         }
     }
 
-    function nextInstruction(step) {
-        document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
-        document.getElementById(`screen-ins${step}`).classList.remove('hidden');
-    }
-
+    // Pressing Start goes straight into the first trial
     function startTest() {
+        document.getElementById('message-panel').style.display = 'none';
         generateTrialSequence();
         document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
         document.getElementById('screen-task').classList.remove('hidden');
@@ -360,7 +548,42 @@
         document.getElementById('deck-display').innerHTML = '';
     }
 
+    function updateProgress() {
+        const pct = Math.min(100, (currentTrialIndex / 60) * 100);
+        document.getElementById('progress-bar').style.width = `${pct}%`;
+    }
+
+    // Per-round response window, mirrored by the countdown bar at the bottom
+    const ROUND_TIME = 15000;
+
+    function startCountdown() {
+        const bar = document.getElementById('countdown-bar');
+        bar.style.transition = 'none';
+        bar.style.width = '100%';
+        void bar.offsetWidth; // apply the reset before animating
+        bar.style.transition = `width ${ROUND_TIME}ms linear`;
+        bar.style.width = '0%';
+    }
+
+    function stopCountdown() {
+        const bar = document.getElementById('countdown-bar');
+        bar.style.transition = 'none';
+        bar.style.width = '100%';
+    }
+
+    // Milestone ticks at quarters of the session
+    (function renderMilestones() {
+        const barContainer = document.getElementById('progress-bar-container');
+        [25, 50, 75].forEach(pct => {
+            const tick = document.createElement('div');
+            tick.className = 'progress-milestone';
+            tick.style.left = `${pct}%`;
+            barContainer.appendChild(tick);
+        });
+    })();
+
     function runTrial() {
+        updateProgress();
         if (currentTrialIndex >= 60) {
             endBlock();
             return;
@@ -377,10 +600,11 @@
             
             acceptInput = true;
             startTime = performance.now();
+            startCountdown();
 
             timeoutTimer = setTimeout(() => {
                 handleTimeout();
-            }, 10000);
+            }, ROUND_TIME);
         }, 1000);
     }
 
@@ -388,6 +612,7 @@
         if (!acceptInput) return;
         clearTimeout(timeoutTimer);
         acceptInput = false;
+        stopCountdown();
 
         let currentTrial = wcstTable[currentTrialIndex];
         let rt = performance.now() - startTime;
@@ -409,11 +634,11 @@
         let nonPerseverationError = 0;
 
         if (isCorrect) {
-            textFeedback.innerText = LANG.wcst_feedback_correct;
+            textFeedback.innerText = 'CORRECT';
             textFeedback.className += " feedback-correct";
             playBeep(600, 0.15);
         } else {
-            textFeedback.innerText = LANG.wcst_feedback_error;
+            textFeedback.innerText = 'INCORRECT';
             textFeedback.className += " feedback-error";
             playBeep(200, 0.3);
             
@@ -437,17 +662,19 @@
 
     function handleTimeout() {
         acceptInput = false;
+        stopCountdown();
         let deckDisplay = document.getElementById('deck-display');
         deckDisplay.innerHTML = '';
         let textFeedback = document.createElement('div');
         textFeedback.className = 'text-feedback-node feedback-error';
-        textFeedback.innerText = LANG.wcst_feedback_too_slow;
+        textFeedback.innerText = 'TIME OUT';
         deckDisplay.appendChild(textFeedback);
         
         playBeep(150, 0.5);
 
         totalErrors++;
         nonPerseverationErrors++;
+        timeoutCount++;
 
         setTimeout(() => {
             currentTrialIndex++;
@@ -473,29 +700,16 @@
     }
 
     function endBlock() {
+        // No on-screen feedback: results go to the session log only
         document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
-        let feedbackScreen = document.getElementById('screen-feedback');
-        feedbackScreen.classList.remove('hidden');
+        document.getElementById('screen-feedback').classList.remove('hidden');
 
-        let totalTrials = 60;
-        let percErrors = ((totalErrors / totalTrials) * 100).toFixed(1);
-        let percPers = ((perseverationErrors / totalTrials) * 100).toFixed(1);
-        let percNonPers = ((nonPerseverationErrors / totalTrials) * 100).toFixed(1);
-
-        document.getElementById('num-errors').innerText = totalErrors;
-        document.getElementById('perc-errors').innerText = `(${percErrors}%)`;
-        
-        document.getElementById('num-pers').innerText = perseverationErrors;
-        document.getElementById('perc-pers').innerText = `(${percPers}%)`;
-        
-        document.getElementById('num-nonpers').innerText = nonPerseverationErrors;
-        document.getElementById('perc-nonpers').innerText = `(${percNonPers}%)`;
-
-        window.addEventListener('keydown', function handleSpace(e) {
-            if (e.code === 'Space') {
-                window.removeEventListener('keydown', handleSpace);
-                location.reload();
-            }
+        logSession(4, {
+            total_trials: 60,
+            total_errors: totalErrors,
+            perseveration_errors: perseverationErrors,
+            non_perseveration_errors: nonPerseverationErrors,
+            total_timeouts: timeoutCount
         });
     }
 </script>

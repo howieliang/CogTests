@@ -3,7 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title data-i18n="corsi_page_title">Corsi Block-Tapping Task</title>
+    <title>Corsi Block-Tapping Task</title>
+    <link rel="icon" type="image/png" href="favicon.png">
+    <link rel="apple-touch-icon" href="favicon.png">
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -11,9 +13,11 @@
             display: flex;
             flex-direction: column;
             align-items: center;
-            justify-content: center;
-            height: 100vh;
+            justify-content: flex-start;
+            min-height: 100vh;
             margin: 0;
+            padding: 15px 0;
+            box-sizing: border-box;
         }
 
         h1 {
@@ -21,116 +25,334 @@
             margin-bottom: 5px;
         }
 
-        #status {
+        /* Always-visible task instruction under the title */
+        .instructions {
+            font-size: 0.9rem;
+            color: #555;
+            margin: 0 0 12px;
+            text-align: center;
+            max-width: 92vw;
+        }
+
+        /* Session introduction panel with the start button (styled like Visual Search) */
+        #message-panel {
+            background: #fff;
+            width: 440px;
+            max-width: 92vw;
+            border-radius: 12px;
+            padding: 16px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+            margin-bottom: 12px;
+            text-align: center;
+            box-sizing: border-box;
+        }
+
+        #message-text {
+            font-size: 0.95rem;
+            color: #555;
+            margin: 0 0 12px;
+        }
+
+        /* Progress line: "Length x, round y (of 2)" */
+        #progress {
             font-size: 1.2rem;
-            margin-bottom: 20px;
             font-weight: bold;
+            color: #555;
+            margin-bottom: 4px;
+            min-height: 1.5rem;
+        }
+
+        #status {
+            font-size: 0.95rem;
+            margin-bottom: 10px;
             color: #555;
         }
 
-        /* The 3x3 grid container */
-        #grid-container {
-            display: grid;
-            grid-template-columns: repeat(3, 80px);
-            grid-template-rows: repeat(3, 80px);
-            gap: 20px;
+        #board {
             background: #fff;
-            padding: 20px;
             border-radius: 10px;
             box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
-        }
-
-        /* The blocks */
-        .block {
-            background-color: #3498db;
-            border-radius: 8px;
             cursor: pointer;
-            transition: background-color 0.2s ease;
+            max-width: 92vw;
+            max-height: 70vh;
+            height: auto;
         }
 
-        /* Active flash state */
-        .block.flash {
-            background-color: #e74c3c !important;
-        }
-
-        /* Disabled state when user shouldn't click */
-        .disabled {
+        #board.disabled {
             pointer-events: none;
         }
 
-        #controls {
-            margin-top: 20px;
-        }
-
-        button {
-            padding: 10px 20px;
+        /* Same button color as the Visual Search task */
+        #start-btn {
+            width: 100%;
+            padding: 12px;
             font-size: 1rem;
-            background-color: #2ecc71;
+            background-color: #3182ce;
             color: white;
             border: none;
-            border-radius: 5px;
+            border-radius: 8px;
             cursor: pointer;
             font-weight: bold;
         }
 
-        button:hover {
-            background-color: #27ae60;
+        #start-btn:hover, #start-btn:active {
+            background-color: #2b6cb0;
+        }
+
+        #status {
+            min-height: 1.5rem;
         }
 
     </style>
-    <script src="lang/lang.js"></script>
 </head>
 <body>
 
-<button data-i18n="back_btn" onclick="window.location.href='index.html'" style="position:fixed;top:12px;left:12px;background-color:#95a5a6;color:white;border:none;padding:6px 14px;font-size:14px;border-radius:4px;cursor:pointer;z-index:10;">Back</button>
+<button onclick="window.location.href='index.html'" style="position:fixed;top:12px;left:12px;background-color:#95a5a6;color:white;border:none;padding:6px 14px;font-size:14px;border-radius:4px;cursor:pointer;z-index:10;">Back</button>
 
-    <h1 data-i18n="corsi_heading">Corsi Block Task</h1>
-    <div id="status" data-i18n="corsi_status_start">Press "Start Game" to begin</div>
+<div style="position:fixed;top:12px;right:12px;background-color:#e8e8ee;color:#555;padding:6px 14px;font-size:14px;border-radius:4px;z-index:10;">User: <span id="user-badge"></span></div>
+<script>document.getElementById('user-badge').textContent = localStorage.getItem('cogtests_user_id') || 'guest';</script>
 
-    <div id="grid-container" class="disabled">
-        <div class="block" id="b1"></div>
-        <div class="block" id="b2"></div>
-        <div class="block" id="b3"></div>
-        <div class="block" id="b4"></div>
-        <div class="block" id="b5"></div>
-        <div class="block" id="b6"></div>
-        <div class="block" id="b7"></div>
-        <div class="block" id="b8"></div>
-        <div class="block" id="b9"></div>
+    <h1>Corsi Block Task</h1>
+    <p class="instructions">Watch the blocks light up, then tap them in the same order.</p>
+
+    <div id="message-panel">
+        <p id="message-text">The sequence starts at 2 blocks and grows as you succeed. You get two attempts at each length; the test ends when both attempts at a length fail.</p>
+        <button id="start-btn" onclick="startGame()">Start Test</button>
     </div>
 
-    <div id="controls">
-        <button id="start-btn" data-i18n="corsi_btn_start" onclick="startGame()">Start Game</button>
-    </div>
+    <div id="progress"></div>
+
+    <div id="status"></div>
+
+    <canvas id="board" class="disabled" width="440" height="640"></canvas>
 
     <script>
-        const blocks = Array.from(document.querySelectorAll('.block'));
-        const gridContainer = document.getElementById('grid-container');
+        // ─── Session logging ─────────────────────────────────────────────────────
+        // One entry per completed session: user id, game type, timestamp, metrics.
+        // Entries print to the console (filter: COGTEST_LOG) and accumulate in
+        // `sessionLog`, mirrored to sessionStorage so the array survives page
+        // navigation within the tab. Inspect with `sessionLog` / console.table(sessionLog).
+        const SESSION_LOG_KEY = 'cogtests_session_log';
+        const sessionLog = (() => {
+            try { return JSON.parse(sessionStorage.getItem(SESSION_LOG_KEY)) || []; }
+            catch (e) { return []; }
+        })();
+        window.sessionLog = sessionLog;
+
+        function formatTimestamp() {
+            const d = new Date();
+            const pad = n => String(n).padStart(2, '0');
+            return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}-`
+                 + `${pad(d.getHours())}-${pad(d.getMinutes())}-${pad(d.getSeconds())}`;
+        }
+
+        function logSession(gameType, metrics) {
+            const entry = {
+                user_id: localStorage.getItem('cogtests_user_id') || 'guest',
+                game_type: gameType,
+                timestamp: formatTimestamp(),
+                ...metrics
+            };
+            sessionLog.push(entry);
+            try { sessionStorage.setItem(SESSION_LOG_KEY, JSON.stringify(sessionLog)); } catch (e) {}
+            console.log('COGTEST_LOG', entry);
+            if (typeof DF_GAME !== 'undefined') sendToDataFoundry(DF_GAME, entry);
+        }
+
+        const DF_GAME = 'corsi'; // this page's Data Foundry dataset
+        // ─── Remote logging: Data Foundry ────────────────────────────────────────
+        // Entries POST in real time to per-game datasets. Failed sends queue in
+        // localStorage and are retried on every page load, after each successful
+        // send, and manually from the index page's pending-log indicator.
+        const DF_SOURCE_ID = 'd257ec2928fb945e6';
+        const DF_CONFIGS = {
+            corsi: { dataset: '25600', activity: 'corsi', token: 'TUxwT2hGc3JqdEd2ZG5zTHZabWpQYjljaG81WldkMW1sd1lwbTNRNmY0dz0=' },
+            vst:   { dataset: '25601', activity: 'vst',   token: 'b0V4UDFLa3RJOVBNdkV0eE1JUGxRZTVYeVkwN3hhcEJDMW4zUE8wbjZ5Yz0=' },
+            dccs:  { dataset: '25602', activity: 'dccs',  token: 'RlhKYktxYmZRVzlxbjc0M1VJNWJaQlcyRkhpNk5oL3BZQVcxTXRndEg2Yz0=' },
+            wcst:  { dataset: '25603', activity: 'wcst',  token: 'Ynh2Q2xVZHhLSzNuUy9aS2Z3dkozMEhkMitEY25GV3FBM3VkaEZ5Rm9uaz0=' }
+        };
+        const PENDING_KEY = 'cogtests_pending_log';
+
+        function postToDF(game, entry) {
+            const cfg = DF_CONFIGS[game];
+            const data = { ...entry };
+            // Data Foundry rows are flat: nested trial arrays go as one JSON string field
+            if (data.trials !== undefined) data.trials = JSON.stringify(data.trials);
+            return fetch(`https://datafoundry.id.tue.nl/api/v1/datasets/ts/${cfg.dataset}?activity=${cfg.activity}`, {
+                method: 'POST',
+                mode: 'cors',
+                cache: 'no-cache',
+                headers: { 'Content-Type': 'application/json', 'api_token': cfg.token, 'source_id': DF_SOURCE_ID },
+                redirect: 'follow',
+                referrerPolicy: 'no-referrer',
+                body: JSON.stringify(data)
+            }).then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r; });
+        }
+
+        function getPending() {
+            try { return JSON.parse(localStorage.getItem(PENDING_KEY)) || []; }
+            catch (e) { return []; }
+        }
+
+        function setPending(queue) {
+            localStorage.setItem(PENDING_KEY, JSON.stringify(queue));
+            updatePendingIndicator();
+        }
+
+        function savePending(game, entry) {
+            const queue = getPending();
+            queue.push({ game, entry });
+            setPending(queue);
+        }
+
+        // The indicator elements only exist on index.html; no-op elsewhere
+        function updatePendingIndicator() {
+            const el = document.getElementById('pending-indicator');
+            if (!el) return;
+            const n = getPending().length;
+            el.style.display = n > 0 ? 'block' : 'none';
+            document.getElementById('pending-count').textContent = n;
+        }
+
+        function sendToDataFoundry(game, entry) {
+            postToDF(game, entry)
+                .then(() => { console.log('DF sent:', game, entry); drainPending(); })
+                .catch(err => { console.warn('DF send failed, saving locally:', err); savePending(game, entry); });
+        }
+
+        let _draining = false;
+        function drainPending() {
+            if (_draining) return;
+            const queue = getPending();
+            if (queue.length === 0) return;
+            _draining = true;
+            const item = queue[0];
+            postToDF(item.game, item.entry)
+                .then(() => {
+                    console.log('DF drained entry:', item);
+                    const q = getPending();
+                    q.shift();
+                    setPending(q);
+                    _draining = false;
+                    drainPending();
+                })
+                .catch(err => { console.warn('DF drain failed, will retry later:', err); _draining = false; });
+        }
+
+        // On load: show any pending count and retry stored entries
+        updatePendingIndicator();
+        drainPending();
+
+        const canvas = document.getElementById('board');
+        const ctx = canvas.getContext('2d');
         const statusText = document.getElementById('status');
         const startBtn = document.getElementById('start-btn');
+        const messagePanel = document.getElementById('message-panel');
+
+        const NUM_BLOCKS = 9;
+        const BLOCK_SIZE = 60;
+        const MIN_GAP = 30;       // Minimum spacing between block edges
+        const BOARD_MARGIN = 25;  // Keep blocks away from the canvas edge
+
+        const BASE_COLOR = '#3498db';
+        const FLASH_COLOR = '#e74c3c';
+
+        let blocks = [];          // { x, y } top-left corners
+        let flashing = new Set(); // Indices currently lit
 
         let sequence = [];
         let userSequence = [];
         let currentSequenceLength = 2; // Starts with a 2-block span
-        let lives = 2; // Allowed 2 failed attempts per length
+        let trialsAtLength = 0; // Trials administered at the current length (2 per length)
+        let passesAtLength = 0; // Passed trials at the current length
+
+        // Performance metrics
+        let corsiSpan = 0;           // Longest sequence recalled correctly at least once
+        let totalScore = 0;          // Cumulative trials score: +1 per correctly recalled sequence
+        let totalErrors = 0;         // Failed sequences (one wrong tap each)
+        let transpositionErrors = 0; // Wrong taps that landed on a block adjacent to the target
+
+        // A wrong tap counts as a spatial transposition when the tapped block's center
+        // is within this distance of the correct block's center (roughly one neighbor away)
+        const ADJACENT_DIST = BLOCK_SIZE * 2.5;
+
+        const progressText = document.getElementById('progress');
+
+        // Scatter identical blocks at random, non-overlapping positions
+        function generateLayout() {
+            blocks = [];
+            const maxX = canvas.width - BLOCK_SIZE - BOARD_MARGIN * 2;
+            const maxY = canvas.height - BLOCK_SIZE - BOARD_MARGIN * 2;
+
+            while (blocks.length < NUM_BLOCKS) {
+                const candidate = {
+                    x: BOARD_MARGIN + Math.random() * maxX,
+                    y: BOARD_MARGIN + Math.random() * maxY
+                };
+                const tooClose = blocks.some(b =>
+                    Math.abs(b.x - candidate.x) < BLOCK_SIZE + MIN_GAP &&
+                    Math.abs(b.y - candidate.y) < BLOCK_SIZE + MIN_GAP
+                );
+                if (!tooClose) blocks.push(candidate);
+            }
+        }
+
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            blocks.forEach((b, i) => {
+                ctx.fillStyle = flashing.has(i) ? FLASH_COLOR : BASE_COLOR;
+                ctx.beginPath();
+                ctx.roundRect(b.x, b.y, BLOCK_SIZE, BLOCK_SIZE, 8);
+                ctx.fill();
+            });
+        }
+
+        function flashBlock(index, duration, done) {
+            flashing.add(index);
+            draw();
+            setTimeout(() => {
+                flashing.delete(index);
+                draw();
+                if (done) done();
+            }, duration);
+        }
+
+        function blockAt(x, y) {
+            for (let i = blocks.length - 1; i >= 0; i--) {
+                const b = blocks[i];
+                if (x >= b.x && x <= b.x + BLOCK_SIZE &&
+                    y >= b.y && y <= b.y + BLOCK_SIZE) {
+                    return i;
+                }
+            }
+            return -1;
+        }
 
         function startGame() {
             sequence = [];
             currentSequenceLength = 2;
-            lives = 2;
-            startBtn.style.display = 'none';
+            trialsAtLength = 0;
+            passesAtLength = 0;
+            corsiSpan = 0;
+            totalScore = 0;
+            totalErrors = 0;
+            transpositionErrors = 0;
+            messagePanel.style.display = 'none';
+            generateLayout();
+            draw();
             nextRound();
         }
 
         function nextRound() {
             userSequence = [];
-            statusText.textContent = LANG.corsi_status_watch(currentSequenceLength);
-            gridContainer.classList.add('disabled');
+            progressText.textContent = `Length ${currentSequenceLength}, round ${trialsAtLength + 1} (of 2)`;
+            statusText.textContent = 'Watch the sequence';
+            canvas.classList.add('disabled');
 
             // Generate a fresh random sequence for this round length
             sequence = [];
             while (sequence.length < currentSequenceLength) {
-                const randomBlock = blocks[Math.floor(Math.random() * blocks.length)];
+                const randomBlock = Math.floor(Math.random() * blocks.length);
                 // Avoid back-to-back duplicate taps on the exact same block
                 if (sequence.length === 0 || sequence[sequence.length - 1] !== randomBlock) {
                     sequence.push(randomBlock);
@@ -141,68 +363,107 @@
             playSequence(0);
         }
 
-        function playSequence(index) {
-            if (index >= sequence.length) {
-                // Sequence finished playing, hand over control to the user
-                statusText.textContent = LANG.corsi_status_your_turn;
-                gridContainer.classList.remove('disabled');
+        // Two trials are administered at each length. The test advances after both
+        // trials unless both failed (discontinue criterion), which ends the game.
+        function endTrial(passed) {
+            const failsAtLength = trialsAtLength - passesAtLength;
+
+            if (failsAtLength === 2) {
+                // Discontinue: both trials at this length failed.
+                // No results are shown; the metrics go to the session log only.
+                // The completion message takes the progress line's spot and size.
+                progressText.textContent = 'Task complete. Thank you.';
+                statusText.textContent = '';
+                logSession(1, {
+                    corsi_span: corsiSpan,
+                    total_score: totalScore,
+                    total_errors: totalErrors,
+                    transposition_errors: transpositionErrors,
+                    other_errors: totalErrors - transpositionErrors
+                });
+                startBtn.textContent = 'Try again';
+                messagePanel.style.display = 'block';
                 return;
             }
 
-            const currentBlock = sequence[index];
-            
-            // Flash the block
+            if (trialsAtLength === 2) {
+                // Both trials given, at least one passed — advance to the next length
+                statusText.textContent = passed ? 'Correct! Moving to next level...'
+                                                : 'Incorrect! Moving to the next length…';
+                currentSequenceLength++;
+                trialsAtLength = 0;
+                passesAtLength = 0;
+            } else {
+                // Second trial at the same length
+                statusText.textContent = passed ? 'Correct! One more sequence at this length…'
+                                                : 'Incorrect! You have 1 attempt left for this length.';
+            }
+            setTimeout(nextRound, passed ? 1500 : 2000);
+        }
+
+        function playSequence(index) {
+            if (index >= sequence.length) {
+                // Sequence finished playing, hand over control to the user
+                statusText.textContent = 'Your turn! Repeat the sequence.';
+                canvas.classList.remove('disabled');
+                return;
+            }
+
             setTimeout(() => {
-                currentBlock.classList.add('flash');
-                setTimeout(() => {
-                    currentBlock.classList.remove('flash');
+                flashBlock(sequence[index], 600, () => {
                     // Move to the next block in the sequence after a short delay
-                    setTimeout(() => {
-                        playSequence(index + 1);
-                    }, 300);
-                }, 600); // How long the block stays lit
+                    setTimeout(() => playSequence(index + 1), 300);
+                });
             }, 200);
         }
 
-        // Handle user clicking the blocks
-        blocks.forEach(block => {
-            block.addEventListener('click', (e) => {
-                const clickedBlock = e.target;
-                
-                // Visual feedback for user click
-                clickedBlock.classList.add('flash');
-                setTimeout(() => clickedBlock.classList.remove('flash'), 150);
+        // Handle user tapping the blocks
+        canvas.addEventListener('click', (e) => {
+            // Map from CSS pixels to canvas coordinates (canvas may be scaled to fit the screen)
+            const rect = canvas.getBoundingClientRect();
+            const clicked = blockAt(
+                (e.clientX - rect.left) * (canvas.width / rect.width),
+                (e.clientY - rect.top) * (canvas.height / rect.height)
+            );
+            if (clicked === -1) return;
 
-                userSequence.push(clickedBlock);
-                const currentCheckIndex = userSequence.length - 1;
+            // Visual feedback for user click
+            flashBlock(clicked, 150);
 
-                // Check if user clicked the wrong block
-                if (userSequence[currentCheckIndex] !== sequence[currentCheckIndex]) {
-                    gridContainer.classList.add('disabled');
-                    lives--;
-                    
-                    if (lives > 0) {
-                        statusText.textContent = LANG.corsi_status_incorrect(lives);
-                        setTimeout(nextRound, 2000);
-                    } else {
-                        // Game Over condition
-                        statusText.textContent = LANG.corsi_status_game_over(currentSequenceLength - 1);
-                        startBtn.textContent = LANG.corsi_btn_play_again;
-                        startBtn.style.display = 'block';
-                    }
-                    return;
+            userSequence.push(clicked);
+            const currentCheckIndex = userSequence.length - 1;
+
+            // Check if user clicked the wrong block
+            if (userSequence[currentCheckIndex] !== sequence[currentCheckIndex]) {
+                canvas.classList.add('disabled');
+                trialsAtLength++;
+                totalErrors++;
+
+                // Classify the error: hitting a block adjacent to the target suggests
+                // fuzzy spatial encoding rather than a complete memory drop
+                const target = blocks[sequence[currentCheckIndex]];
+                const hit = blocks[clicked];
+                if (Math.hypot(hit.x - target.x, hit.y - target.y) <= ADJACENT_DIST) {
+                    transpositionErrors++;
                 }
+                endTrial(false);
+                return;
+            }
 
-                // Check if user successfully finished the entire current sequence
-                if (userSequence.length === sequence.length) {
-                    gridContainer.classList.add('disabled');
-                    statusText.textContent = LANG.corsi_status_correct;
-                    currentSequenceLength++;
-                    lives = 2; // Reset lives for the next sequence length
-                    setTimeout(nextRound, 1500);
-                }
-            });
+            // Check if user successfully finished the entire current sequence
+            if (userSequence.length === sequence.length) {
+                canvas.classList.add('disabled');
+                trialsAtLength++;
+                passesAtLength++;
+                totalScore++; // Cumulative trials score: 1 point per correct sequence
+                corsiSpan = Math.max(corsiSpan, sequence.length);
+                endTrial(true);
+            }
         });
+
+        // Show an initial (idle) layout before the game starts
+        generateLayout();
+        draw();
     </script>
 </body>
 </html>
