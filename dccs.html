@@ -1,0 +1,739 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dimensional Change Card Sort (DCCS) - Shape First</title>
+    <link rel="icon" type="image/png" href="favicon.png">
+    <link rel="apple-touch-icon" href="favicon.png">
+    <style>
+        :root {
+            --card-width: 34%; /* relative to the board; cards keep an 8:11 aspect */
+        }
+        body {
+            margin: 0;
+            padding: 15px 0;
+            box-sizing: border-box;
+            background-color: #f4f4f9;
+            font-family: Arial, sans-serif;
+            user-select: none;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+            align-items: center;
+            min-height: 100vh;
+        }
+        h1 {
+            color: #333;
+            font-size: 2rem;
+            margin: 0.67em 60px 5px; /* side margins keep clear of the fixed Back button */
+            text-align: center;
+        }
+
+        /* Always-visible task instruction under the title */
+        .instructions {
+            font-size: 0.9rem;
+            color: #555;
+            margin: 0 0 12px;
+            text-align: center;
+            max-width: 92vw;
+        }
+
+        /* Detailed instruction panel with the start button */
+        #message-panel {
+            background: #fff;
+            width: 440px;
+            max-width: 92vw;
+            border-radius: 10px;
+            padding: 16px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+            margin-bottom: 12px;
+            text-align: center;
+            box-sizing: border-box;
+        }
+
+        #message-text {
+            font-size: 0.95rem;
+            color: #555;
+            margin: 0 0 12px;
+        }
+
+        #start-btn {
+            width: 100%;
+            margin-top: 0;
+        }
+        #experiment-container {
+            position: relative;
+            width: min(92vw, 440px);
+            aspect-ratio: 2 / 3; /* portrait board for 1080x1920 screens */
+            background: #fff;
+            border-radius: 10px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+        #progress-bar-container {
+            position: absolute;
+            top: 20px;
+            width: 80%;
+            height: 20px;
+            background-color: #eee;
+            border-radius: 10px;
+            overflow: hidden;
+            display: none;
+        }
+        #progress-bar {
+            width: 0%;
+            height: 100%;
+            background-color: #2ecc71;
+            transition: width 0.3s ease;
+        }
+
+        /* Milestone ticks: end of practice, end of the shape game */
+        .progress-milestone {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            width: 2px;
+            background: rgba(0, 0, 0, 0.25);
+        }
+
+        /* Per-round 15s countdown at the bottom of the board */
+        #countdown-container {
+            position: absolute;
+            bottom: 12px;
+            left: 10%;
+            width: 80%;
+            height: 12px;
+            background-color: #f0f0f0;
+            border-radius: 6px;
+            overflow: hidden;
+        }
+
+        #countdown-bar {
+            width: 100%;
+            height: 100%;
+            background-color: #b0b0b0;
+        }
+        /* Cards Layout */
+        #game-board {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            display: none;
+        }
+        .target-box {
+            position: absolute;
+            top: 8%; /* Maps to -150 Y in PsyToolkit matrix */
+            width: var(--card-width);
+            aspect-ratio: 8 / 11;
+            border: 4px dashed #999;
+            border-radius: 12px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            box-sizing: border-box;
+            cursor: pointer;
+            -webkit-tap-highlight-color: transparent;
+        }
+        /* Prompted side during the tap-learning blocks */
+        @keyframes pulse-border {
+            0%, 100% { border-color: #999; }
+            50% { border-color: #3498db; }
+        }
+        .tap-me {
+            border-style: solid;
+            animation: pulse-border 0.8s ease-in-out infinite;
+        }
+        #target-left { left: 6%; } /* Maps to -200 X */
+        #target-right { right: 6%; } /* Maps to 200 X */
+
+        #choice-card {
+            position: absolute;
+            bottom: 7%; /* Maps to 150 Y */
+            left: 33%;  /* Maps to 0 X centered */
+            width: var(--card-width);
+            aspect-ratio: 8 / 11;
+            display: none;
+            z-index: 10;
+        }
+        /* SVGs for Stimuli */
+        .card-graphic svg {
+            width: 65%;
+            height: 80%;
+        }
+        .card-graphic {
+            width: 100%;
+            height: 100%;
+            background: white;
+            border: 3px solid #333;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            box-sizing: border-box;
+        }
+        /* Animations */
+        @keyframes wiggle {
+            0% { transform: translateX(0); }
+            20% { transform: translateX(-15px); }
+            40% { transform: translateX(15px); }
+            60% { transform: translateX(-15px); }
+            80% { transform: translateX(15px); }
+            100% { transform: translateX(0); }
+        }
+        .wiggle-animation {
+            animation: wiggle 0.5s ease-in-out;
+        }
+        /* Fly offsets are relative to the card size so they track the
+           percentage-positioned target boxes at any board scale */
+        .fly-left {
+            transform: translate(-80%, -170%) scale(0.8);
+            transition: transform 1000ms linear;
+        }
+        .fly-right {
+            transform: translate(80%, -170%) scale(0.8);
+            transition: transform 1000ms linear;
+        }
+        .btn {
+            padding: 12px 24px;
+            font-size: 1rem;
+            font-weight: bold;
+            cursor: pointer;
+            background-color: #3498db;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            margin-top: 20px;
+        }
+        .btn:hover { background-color: #2980b9; }
+    </style>
+</head>
+<body>
+
+<button onclick="window.location.href='index.html'" style="position:fixed;top:12px;left:12px;background-color:#95a5a6;color:white;border:none;padding:6px 14px;font-size:14px;border-radius:4px;cursor:pointer;z-index:10;">Back</button>
+
+<div style="position:fixed;top:12px;right:12px;background-color:#e8e8ee;color:#555;padding:6px 14px;font-size:14px;border-radius:4px;z-index:10;">User: <span id="user-badge"></span></div>
+<script>document.getElementById('user-badge').textContent = localStorage.getItem('cogtests_user_id') || 'guest';</script>
+
+<h1>Dimensional Change Card Sort</h1>
+<p class="instructions">Tap the card where each new card belongs.</p>
+
+<div id="message-panel">
+    <p id="message-text">This task measures attention and cognitive flexibility. First play the <strong>shape</strong> game: rabbits go with the rabbit card, boats go with the boat card. To begin, tap the flashing card. Later the rule will change to the <strong>color</strong> game.</p>
+    <button id="start-btn" class="btn" onclick="startTest()">Start</button>
+</div>
+
+<div id="experiment-container">
+    <!-- Progress Indicator -->
+    <div id="progress-bar-container">
+        <div id="progress-bar"></div>
+        <div class="progress-milestone" id="milestone-practice"></div>
+        <div class="progress-milestone" id="milestone-shape"></div>
+    </div>
+
+    <!-- Core Game Board Grid Layout -->
+    <div id="game-board">
+        <div id="target-left" class="target-box"></div>
+        <div id="target-right" class="target-box"></div>
+        <div id="choice-card"></div>
+        <div id="countdown-container"><div id="countdown-bar"></div></div>
+    </div>
+
+</div>
+
+<script>
+    // ─── Session logging ─────────────────────────────────────────────────────
+    // One entry per completed session: user id, game type, timestamp, metrics.
+    // Entries print to the console (filter: COGTEST_LOG) and accumulate in
+    // `sessionLog`, mirrored to sessionStorage so the array survives page
+    // navigation within the tab. Inspect with `sessionLog` / console.table(sessionLog).
+    const SESSION_LOG_KEY = 'cogtests_session_log';
+    const sessionLog = (() => {
+        try { return JSON.parse(sessionStorage.getItem(SESSION_LOG_KEY)) || []; }
+        catch (e) { return []; }
+    })();
+    window.sessionLog = sessionLog;
+
+    function formatTimestamp() {
+        const d = new Date();
+        const pad = n => String(n).padStart(2, '0');
+        return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}-`
+             + `${pad(d.getHours())}-${pad(d.getMinutes())}-${pad(d.getSeconds())}`;
+    }
+
+    function logSession(gameType, metrics) {
+        const entry = {
+            user_id: localStorage.getItem('cogtests_user_id') || 'guest',
+            game_type: gameType,
+            timestamp: formatTimestamp(),
+            ...metrics
+        };
+        sessionLog.push(entry);
+        try { sessionStorage.setItem(SESSION_LOG_KEY, JSON.stringify(sessionLog)); } catch (e) {}
+        console.log('COGTEST_LOG', entry);
+        if (typeof DF_GAME !== 'undefined') sendToDataFoundry(DF_GAME, entry);
+    }
+
+    const DF_GAME = 'dccs'; // this page's Data Foundry dataset
+    // ─── Remote logging: Data Foundry ────────────────────────────────────────
+    // Entries POST in real time to per-game datasets. Failed sends queue in
+    // localStorage and are retried on every page load, after each successful
+    // send, and manually from the index page's pending-log indicator.
+    const DF_SOURCE_ID = 'd257ec2928fb945e6';
+    const DF_CONFIGS = {
+        corsi: { dataset: '25600', activity: 'corsi', token: 'TUxwT2hGc3JqdEd2ZG5zTHZabWpQYjljaG81WldkMW1sd1lwbTNRNmY0dz0=' },
+        vst:   { dataset: '25601', activity: 'vst',   token: 'b0V4UDFLa3RJOVBNdkV0eE1JUGxRZTVYeVkwN3hhcEJDMW4zUE8wbjZ5Yz0=' },
+        dccs:  { dataset: '25602', activity: 'dccs',  token: 'RlhKYktxYmZRVzlxbjc0M1VJNWJaQlcyRkhpNk5oL3BZQVcxTXRndEg2Yz0=' },
+        wcst:  { dataset: '25603', activity: 'wcst',  token: 'Ynh2Q2xVZHhLSzNuUy9aS2Z3dkozMEhkMitEY25GV3FBM3VkaEZ5Rm9uaz0=' }
+    };
+    const PENDING_KEY = 'cogtests_pending_log';
+
+    function postToDF(game, entry) {
+        const cfg = DF_CONFIGS[game];
+        const data = { ...entry };
+        // Data Foundry rows are flat: nested trial arrays go as one JSON string field
+        if (data.trials !== undefined) data.trials = JSON.stringify(data.trials);
+        return fetch(`https://datafoundry.id.tue.nl/api/v1/datasets/ts/${cfg.dataset}?activity=${cfg.activity}`, {
+            method: 'POST',
+            mode: 'cors',
+            cache: 'no-cache',
+            headers: { 'Content-Type': 'application/json', 'api_token': cfg.token, 'source_id': DF_SOURCE_ID },
+            redirect: 'follow',
+            referrerPolicy: 'no-referrer',
+            body: JSON.stringify(data)
+        }).then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r; });
+    }
+
+    function getPending() {
+        try { return JSON.parse(localStorage.getItem(PENDING_KEY)) || []; }
+        catch (e) { return []; }
+    }
+
+    function setPending(queue) {
+        localStorage.setItem(PENDING_KEY, JSON.stringify(queue));
+        updatePendingIndicator();
+    }
+
+    function savePending(game, entry) {
+        const queue = getPending();
+        queue.push({ game, entry });
+        setPending(queue);
+    }
+
+    // The indicator elements only exist on index.html; no-op elsewhere
+    function updatePendingIndicator() {
+        const el = document.getElementById('pending-indicator');
+        if (!el) return;
+        const n = getPending().length;
+        el.style.display = n > 0 ? 'block' : 'none';
+        document.getElementById('pending-count').textContent = n;
+    }
+
+    function sendToDataFoundry(game, entry) {
+        postToDF(game, entry)
+            .then(() => { console.log('DF sent:', game, entry); drainPending(); })
+            .catch(err => { console.warn('DF send failed, saving locally:', err); savePending(game, entry); });
+    }
+
+    let _draining = false;
+    function drainPending() {
+        if (_draining) return;
+        const queue = getPending();
+        if (queue.length === 0) return;
+        _draining = true;
+        const item = queue[0];
+        postToDF(item.game, item.entry)
+            .then(() => {
+                console.log('DF drained entry:', item);
+                const q = getPending();
+                q.shift();
+                setPending(q);
+                _draining = false;
+                drainPending();
+            })
+            .catch(err => { console.warn('DF drain failed, will retry later:', err); _draining = false; });
+    }
+
+    // On load: show any pending count and retry stored entries
+    updatePendingIndicator();
+    drainPending();
+
+    // --- Vector Stimuli Mapping ---
+    // SVG Templates to avoid asset breaks. Target 1: Blue Rabbit. Target 2: Red Boat.
+    const SVG_TEMPLATES = {
+        blue_rabbit: `<div class="card-graphic"><svg width="100" height="150" viewBox="0 0 100 100"><ellipse cx="35" cy="25" rx="8" ry="25" fill="#1f77b4"/><ellipse cx="65" cy="25" rx="8" ry="25" fill="#1f77b4"/><circle cx="50" cy="65" r="25" fill="#1f77b4"/><circle cx="50" cy="65" r="6" fill="#fff"/><circle cx="45" cy="62" r="2" fill="#000"/><circle cx="55" cy="62" r="2" fill="#000"/></svg></div>`,
+        red_boat: `<div class="card-graphic"><svg width="100" height="150" viewBox="0 0 100 100"><path d="M10 60 L90 60 L80 85 L20 85 Z" fill="#d62728"/><rect x="42" y="30" width="16" height="30" fill="#d62728"/><rect x="46" y="15" width="8" height="15" fill="#333"/></svg></div>`,
+        red_rabbit: `<div class="card-graphic"><svg width="100" height="150" viewBox="0 0 100 100"><ellipse cx="35" cy="25" rx="8" ry="25" fill="#d62728"/><ellipse cx="65" cy="25" rx="8" ry="25" fill="#d62728"/><circle cx="50" cy="65" r="25" fill="#d62728"/><circle cx="50" cy="65" r="6" fill="#fff"/><circle cx="45" cy="62" r="2" fill="#000"/><circle cx="55" cy="62" r="2" fill="#000"/></svg></div>`,
+        blue_boat: `<div class="card-graphic"><svg width="100" height="150" viewBox="0 0 100 100"><path d="M10 60 L90 60 L80 85 L20 85 Z" fill="#1f77b4"/><rect x="42" y="30" width="16" height="30" fill="#1f77b4"/><rect x="46" y="15" width="8" height="15" fill="#333"/></svg></div>`,
+        empty: `<div class="card-graphic" style="border: 3px dashed #ccc"></div>`
+    };
+
+    // --- Audio Synthesis Engine ---
+    // Simulates the PsyToolkit .mp3 vocal prompts safely via Web Audio API
+    const AudioEngine = {
+        ctx: null,
+        init() { this.ctx = new (window.AudioContext || window.webkitAudioContext)(); },
+        play(type) {
+            if(!this.ctx) this.init();
+            const osc = this.ctx.createOscillator();
+            const gain = this.ctx.createGain();
+            osc.connect(gain);
+            gain.connect(this.ctx.destination);
+            
+            if(type === 'pop') {
+                osc.frequency.setValueAtTime(587.33, this.ctx.currentTime); // D5
+                gain.gain.setValueAtTime(0.1, this.ctx.currentTime);
+                osc.start(); osc.stop(this.ctx.currentTime + 0.1);
+            } else if(type === 'success') {
+                osc.frequency.setValueAtTime(523.25, this.ctx.currentTime); // C5
+                osc.frequency.exponentialRampToValueAtTime(880, this.ctx.currentTime + 0.15);
+                gain.gain.setValueAtTime(0.1, this.ctx.currentTime);
+                osc.start(); osc.stop(this.ctx.currentTime + 0.2);
+            } else if(type === 'fail') {
+                osc.frequency.setValueAtTime(220, this.ctx.currentTime); // A3
+                osc.frequency.linearRampToValueAtTime(110, this.ctx.currentTime + 0.2);
+                gain.gain.setValueAtTime(0.2, this.ctx.currentTime);
+                osc.start(); osc.stop(this.ctx.currentTime + 0.25);
+            }
+        }
+    };
+
+    // --- State Variables ---
+    let currentTrialIndex = 1;
+    let successSequenceCount = 0;
+    let dataLog = [];
+    let blockName = "INTRO_FILM";
+    let currentCorrectKey = '';
+    let trialStartTime = 0;
+    let acceptInput = false;
+
+    // --- Experimental Flow Configuration ---
+    // The message panel introduces each mode; its button runs the pending action.
+    // Initially that is the first round (tap learning, left side).
+    let pendingStart = () => runKeyLearningBlock('left');
+
+    function startTest() {
+        document.getElementById('message-panel').style.display = 'none';
+        pendingStart();
+    }
+
+    // Show the instruction panel between modes with an explicit start button
+    function showModeIntro(html, btnLabel, action) {
+        pendingStart = action;
+        document.getElementById('message-text').innerHTML = html;
+        document.getElementById('start-btn').textContent = btnLabel;
+        document.getElementById('message-panel').style.display = 'block';
+    }
+
+    function showScreen(id) {
+        document.getElementById('game-board').style.display = (id === 'game-board') ? 'block' : 'none';
+        if(id === 'game-board') {
+            document.getElementById('progress-bar-container').style.display = 'block';
+            updateProgress();
+        } else {
+            document.getElementById('progress-bar-container').style.display = 'none';
+        }
+    }
+
+    // Minimum trials still ahead, given the current block state. Errors repeat
+    // trials, so this can hold steady while completed trials keep growing.
+    function estimateRemainingTrials() {
+        const CORE = 24; // 12 shape + 12 color
+        if (blockName === "TAP_LEARNING_LEFT")  return 1 + 1 + 2 + CORE;
+        if (blockName === "TAP_LEARNING_RIGHT") return 1 + 2 + CORE;
+        if (blockName === "PRACTICE_SHAPE")     return Math.max(2 - successSequenceCount, 1) + CORE;
+        if (blockName === "SHAPE_BLOCK")        return (12 - coreTrialCount) + 12;
+        if (blockName === "COLOR_BLOCK")        return 12 - coreTrialCount;
+        if (blockName === "INTRO_SWITCH_COLOR") return 12; // color block still ahead
+        if (blockName === "DONE")               return 0;
+        return 2 + 2 + CORE; // before the first learning trial
+    }
+
+    function updateProgress() {
+        const done = dataLog.length; // one row per completed trial
+        const total = done + estimateRemainingTrials();
+        const pct = total === 0 ? 0 : Math.min(100, (done / total) * 100);
+        document.getElementById('progress-bar').style.width = `${pct}%`;
+
+        // Milestones track the dynamic total: the practice phase always ends
+        // 24 core trials before the finish, the shape game 12 trials before
+        if (total > 0) {
+            document.getElementById('milestone-practice').style.left = `${((total - 24) / total) * 100}%`;
+            document.getElementById('milestone-shape').style.left = `${((total - 12) / total) * 100}%`;
+        }
+    }
+
+    // --- Block 1 & 2: Tap Learning Blocks ---
+    function runKeyLearningBlock(side) {
+        blockName = `TAP_LEARNING_${side.toUpperCase()}`;
+        showScreen('game-board');
+
+        document.getElementById('target-left').innerHTML = SVG_TEMPLATES.empty;
+        document.getElementById('target-right').innerHTML = SVG_TEMPLATES.empty;
+
+        setTimeout(() => {
+            const choice = document.getElementById('choice-card');
+            choice.innerHTML = SVG_TEMPLATES.empty;
+            choice.style.display = 'block';
+            choice.className = '';
+
+            // Pulse the side the child should tap
+            document.getElementById(`target-${side}`).classList.add('tap-me');
+
+            AudioEngine.play('pop');
+            currentCorrectKey = side;
+            armRound();
+        }, 1000);
+    }
+
+    // --- Block 3: Practice Block (Shape First) ---
+    function startPracticeBlock() {
+        blockName = "PRACTICE_SHAPE";
+        currentTrialIndex++;
+        showScreen('game-board');
+        
+        // Static categorization targets anchored continuously
+        document.getElementById('target-left').innerHTML = SVG_TEMPLATES.blue_rabbit;
+        document.getElementById('target-right').innerHTML = SVG_TEMPLATES.red_boat;
+        
+        setTimeout(() => {
+            const choice = document.getElementById('choice-card');
+            // Distractor matching color left, shape right
+            choice.innerHTML = SVG_TEMPLATES.blue_boat; 
+            choice.style.display = 'block';
+            choice.className = '';
+            
+            AudioEngine.play('pop');
+            currentCorrectKey = 'right'; // Sorting by shape -> Boat belongs on the right
+            armRound();
+        }, 1000);
+    }
+
+    // --- Block 4 & 5: Core Testing Cards Blocks ---
+    function startCoreCardBlock(type) {
+        blockName = type; // "SHAPE_BLOCK" or "COLOR_BLOCK"
+        showScreen('game-board');
+        
+        document.getElementById('target-left').innerHTML = SVG_TEMPLATES.blue_rabbit;
+        document.getElementById('target-right').innerHTML = SVG_TEMPLATES.red_boat;
+        
+        runCoreTrial();
+    }
+
+    let coreTrialCount = 0;
+    function runCoreTrial() {
+        if(coreTrialCount >= 12) {
+            coreTrialCount = 0;
+            if(blockName === "SHAPE_BLOCK") {
+                initiateMidwaySwitch();
+            } else {
+                terminateExperiment();
+            }
+            return;
+        }
+        
+        setTimeout(() => {
+            const choice = document.getElementById('choice-card');
+            // Alternate ambiguous test cards systematically 
+            const isRabbit = Math.random() > 0.5;
+            if(isRabbit) {
+                choice.innerHTML = SVG_TEMPLATES.red_rabbit;
+                currentCorrectKey = (blockName === "SHAPE_BLOCK") ? 'left' : 'right'; // Shape=Rabbit(Left), Color=Red(Right)
+            } else {
+                choice.innerHTML = SVG_TEMPLATES.blue_boat;
+                currentCorrectKey = (blockName === "SHAPE_BLOCK") ? 'right' : 'left'; // Shape=Boat(Right), Color=Blue(Left)
+            }
+            
+            choice.style.display = 'block';
+            choice.className = '';
+            
+            AudioEngine.play('pop');
+            armRound();
+        }, 1000);
+    }
+
+    function initiateMidwaySwitch() {
+        blockName = "INTRO_SWITCH_COLOR";
+        AudioEngine.play('success');
+        showModeIntro(
+            "Look! We are not playing the shape game anymore. Now we are going to play the <strong>color</strong> game! Blue ones go with the blue card, and red ones go with the red card.",
+            "Start Color Game",
+            () => startCoreCardBlock("COLOR_BLOCK"));
+    }
+
+    // --- Round timing: 15s response window with a countdown bar ---
+    const ROUND_TIME = 15000;
+    let roundTimer = null;
+
+    function startCountdown() {
+        const bar = document.getElementById('countdown-bar');
+        bar.style.transition = 'none';
+        bar.style.width = '100%';
+        void bar.offsetWidth; // apply the reset before animating
+        bar.style.transition = `width ${ROUND_TIME}ms linear`;
+        bar.style.width = '0%';
+    }
+
+    function stopCountdown() {
+        const bar = document.getElementById('countdown-bar');
+        bar.style.transition = 'none';
+        bar.style.width = '100%';
+    }
+
+    // Open the response window: reaction timer, countdown bar, timeout
+    function armRound() {
+        trialStartTime = performance.now();
+        acceptInput = true;
+        startCountdown();
+        clearTimeout(roundTimer);
+        roundTimer = setTimeout(handleTimeout, ROUND_TIME);
+    }
+
+    // No response within the window: treated like an error, logged as TIMEOUT
+    function handleTimeout() {
+        if (!acceptInput) return;
+        acceptInput = false;
+        stopCountdown();
+        document.querySelectorAll('.tap-me').forEach(el => el.classList.remove('tap-me'));
+
+        dataLog.push({
+            trial: currentTrialIndex,
+            block: blockName,
+            rt: ROUND_TIME,
+            status: "TIMEOUT",
+            key_pressed: 'none'
+        });
+
+        AudioEngine.play('fail');
+        successSequenceCount = 0;
+        const choice = document.getElementById('choice-card');
+        choice.classList.add('wiggle-animation');
+
+        setTimeout(() => {
+            choice.style.display = 'none';
+            advanceLogicFlow(false);
+        }, 1000);
+    }
+
+    // --- Universal Tap Input Listener & Animation Pipeline ---
+    // The child responds by tapping the left or right target card directly
+    function handleResponse(side) {
+        if (!acceptInput) return;
+
+        acceptInput = false;
+        clearTimeout(roundTimer);
+        stopCountdown();
+        const rt = Math.round(performance.now() - trialStartTime);
+        const choice = document.getElementById('choice-card');
+        const isCorrect = (side === currentCorrectKey);
+        document.querySelectorAll('.tap-me').forEach(el => el.classList.remove('tap-me'));
+
+        // Log individual data variables mapping to PsyToolkit columns
+        dataLog.push({
+            trial: currentTrialIndex,
+            block: blockName,
+            rt: rt,
+            status: isCorrect ? "CORRECT" : "WRONG",
+            key_pressed: side
+        });
+
+        if (isCorrect) {
+            AudioEngine.play('success');
+            successSequenceCount++;
+
+            // Fly animation into corresponding slot chosen by the child
+            choice.classList.add(side === 'left' ? 'fly-left' : 'fly-right');
+
+            setTimeout(() => {
+                choice.style.display = 'none';
+                advanceLogicFlow(true);
+            }, 1000);
+        } else {
+            // Error handling: Wiggle loop animation, reset accuracy baseline
+            AudioEngine.play('fail');
+            successSequenceCount = 0;
+            choice.classList.add('wiggle-animation');
+
+            setTimeout(() => {
+                choice.style.display = 'none';
+                advanceLogicFlow(false);
+            }, 1000);
+        }
+    }
+    document.getElementById('target-left').addEventListener('click', () => handleResponse('left'));
+    document.getElementById('target-right').addEventListener('click', () => handleResponse('right'));
+
+    function advanceLogicFlow(wasCorrect) {
+        currentTrialIndex++;
+
+        if (blockName === "TAP_LEARNING_LEFT") {
+            if(wasCorrect && successSequenceCount >= 1) {
+                successSequenceCount = 0;
+                runKeyLearningBlock('right');
+            } else {
+                runKeyLearningBlock('left');
+            }
+        } else if (blockName === "TAP_LEARNING_RIGHT") {
+            if(wasCorrect && successSequenceCount >= 1) {
+                successSequenceCount = 0;
+                showModeIntro(
+                    "Time to practice the <strong>shape</strong> game! Tap where each card belongs: rabbits go with the rabbit card, boats go with the boat card.",
+                    "Start Practice",
+                    startPracticeBlock);
+            } else {
+                runKeyLearningBlock('right');
+            }
+        } else if (blockName === "PRACTICE_SHAPE") {
+            // Full feedback protocol: Requires at least 2 consecutive correct trials to pass criterion
+            if(successSequenceCount >= 2) {
+                showModeIntro(
+                    "Great! Now we are playing for real. Sort every card by its <strong>shape</strong>, as fast as you can!",
+                    "Start Shape Game",
+                    () => startCoreCardBlock("SHAPE_BLOCK"));
+            } else {
+                startPracticeBlock();
+            }
+        } else if (blockName === "SHAPE_BLOCK" || blockName === "COLOR_BLOCK") {
+            coreTrialCount++;
+            runCoreTrial();
+        }
+
+        // After the block transition, so the estimate reflects the new state
+        updateProgress();
+    }
+
+    // --- Post-Processing ---
+    function terminateExperiment() {
+        blockName = "DONE";
+
+        // Log the completed session: per-block aggregates plus raw trials
+        const shape = dataLog.filter(r => r.block === 'SHAPE_BLOCK');
+        const color = dataLog.filter(r => r.block === 'COLOR_BLOCK');
+        const meanRt = rows => {
+            const c = rows.filter(r => r.status === 'CORRECT');
+            return c.length ? Math.round(c.reduce((a, r) => a + r.rt, 0) / c.length) : null;
+        };
+        logSession(3, {
+            learning_trials: dataLog.filter(r => r.block.startsWith('TAP_LEARNING')).length,
+            practice_trials: dataLog.filter(r => r.block === 'PRACTICE_SHAPE').length,
+            shape_correct: shape.filter(r => r.status === 'CORRECT').length,
+            color_correct: color.filter(r => r.status === 'CORRECT').length,
+            shape_mean_rt: meanRt(shape),
+            color_mean_rt: meanRt(color),
+            total_errors: dataLog.filter(r => r.status === 'WRONG').length,
+            total_timeouts: dataLog.filter(r => r.status === 'TIMEOUT').length,
+            trials: dataLog
+        });
+
+        // Completion panel with a restart button, like the Corsi task
+        showModeIntro('Thank you! Task completed.', 'Try Again', () => location.reload());
+    }
+</script>
+
+</body>
+</html>
