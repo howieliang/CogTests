@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>Cognitive Tests</title>
+    <title>Portal</title>
     <link rel="icon" type="image/png" href="favicon.png">
     <link rel="apple-touch-icon" href="favicon.png">
     <style>
@@ -52,31 +52,146 @@
             font-size: 0.95rem;
         }
 
-        .menu-list {
+        .note {
+            font-size: 0.75rem;
+            color: #888;
+            margin-top: 6px;
+        }
+
+        /* Calendar header starts below the fixed MIM button */
+        #page-calendar .menu-header h1 {
+            margin-top: 48px;
+        }
+
+        /* Link to the Mind In Images game, top-left of the portal */
+        #mim-btn {
+            position: fixed;
+            top: 12px;
+            left: 12px;
             display: flex;
-            flex-direction: column;
-            gap: 12px;
-        }
-
-        .menu-list button {
-            width: 100%;
-            padding: 16px;
-            font-size: 1rem;
+            align-items: center;
+            gap: 6px;
+            padding: 5px 12px 5px 6px;
+            background: #fff;
+            border: 1px solid #cbd5e0;
+            border-radius: 6px;
+            font-size: 13px;
             font-weight: bold;
-            background-color: #3498db;
-            color: white;
+            color: #333;
+            text-decoration: none;
+            z-index: 10;
+        }
+
+        #mim-btn img {
+            width: 26px;
+            height: 26px;
+            border-radius: 5px;
+            display: block;
+        }
+
+        #mim-btn:hover {
+            background: #f0f4f8;
+        }
+
+        /* Language selector, top-right of the portal */
+        #lang-box {
+            position: fixed;
+            top: 12px;
+            right: 12px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 10px;
+            background: #fff;
+            border: 1px solid #cbd5e0;
+            border-radius: 6px;
+            font-size: 13px;
+            color: #555;
+            z-index: 10;
+        }
+
+        #lang-box select {
+            font-size: 13px;
+            padding: 2px 4px;
+            border: 1px solid #cbd5e0;
+            border-radius: 4px;
+            background: #fff;
+            color: #333;
+        }
+
+        /* Developer date override (User ID 0) */
+        #dev-panel select {
+            font-size: 0.75rem;
+            padding: 2px 4px;
+            border: 1px solid #cbd5e0;
+            border-radius: 4px;
+            background: #fff;
+            color: #555;
+        }
+
+        /* Calendar: 9 Monday-aligned weeks x 7 days, week labels on the left */
+        #calendar-grid {
+            display: grid;
+            grid-template-columns: 36px repeat(7, 1fr);
+            gap: 4px;
+            margin-top: 14px;
+        }
+
+        .cal-head {
+            font-size: 0.7rem;
+            font-weight: bold;
+            color: #888;
+            text-align: center;
+            align-self: end;
+        }
+
+        .cal-week {
+            font-size: 0.7rem;
+            color: #888;
+            text-align: center;
+            align-self: center;
+        }
+
+        .cal-day {
+            /* clamp keeps all 9 rows inside the viewport without scrolling */
+            height: clamp(26px, 5.2vh, 44px);
             border: none;
-            border-radius: 8px;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            font-weight: bold;
+            background: #e4e4ea;
+            color: #999;
+        }
+
+        /* Scheduled Mondays outside the current week */
+        .cal-day.sched {
+            background: #d8e9f7;
+            color: #3f7fb5;
+        }
+
+        /* Available test days: the door to the tests */
+        .cal-day.active {
+            background: #3498db;
+            color: #fff;
             cursor: pointer;
-            transition: background-color 0.2s ease;
         }
 
-        .menu-list button:hover {
-            background-color: #2980b9;
+        .cal-day.active:hover {
+            background: #2980b9;
         }
 
-        .menu-list button:active {
-            background-color: #1f6391;
+        /* Today's cell once all four tests are completed */
+        .cal-day.done {
+            background: #2ecc71;
+            color: #fff;
+        }
+
+        .cal-day.done:hover {
+            background: #27ae60;
+        }
+
+        .cal-day.blank {
+            background: transparent;
         }
 
         /* User ID line in the menu header */
@@ -247,6 +362,7 @@
             <div class="menu-header">
                 <h1>Cognitive Tests</h1>
                 <p>Set a User ID to begin.</p>
+                <p class="note">Setting a new User ID will reset the starting date.</p>
             </div>
             <div class="setup-card">
                 <div class="setup-field">
@@ -265,26 +381,42 @@
             </div>
         </section>
 
-        <section id="page-1" class="page">
+        <section id="page-calendar" class="page">
+            <a id="mim-btn" href="https://howieliang.github.io/mim-app/" onclick="playPop()">
+                <img src="mim.png" alt=""> Go to Mind In Images Game
+            </a>
+            <div id="lang-box">
+                <label for="lang-select">Languages</label>
+                <select id="lang-select" onchange="localStorage.setItem('cogtests_lang', this.value)">
+                    <option value="en_us">English (US)</option>
+                </select>
+            </div>
             <div class="menu-header">
-                <h1>Cognitive Tests</h1>
-                <p>Select a test to begin.</p>
+                <h1>Portal</h1>
+                <p id="schedule-range"></p>
                 <p class="user-line">User ID: <strong id="uid"></strong><button class="link-btn" onclick="openResetModal()">Change</button></p>
+                <p class="note">Complete the cognitive tests on each scheduled day. Play the Mind In Images Game any time you like.</p>
                 <p id="pending-indicator" style="display:none;color:#c0392b;font-size:0.8rem;margin-top:8px;cursor:pointer;" onclick="openPendingModal()">&#9888; <span id="pending-count">0</span> unsent log(s) &mdash; tap to view</p>
+                <p id="dev-panel" class="note" style="display:none;">
+                    Dev date:
+                    <select id="dev-year" onchange="applyDevDate()"></select>
+                    <select id="dev-month" onchange="applyDevDate()"></select>
+                    <select id="dev-day" onchange="applyDevDate()"></select>
+                    <button class="link-btn" onclick="clearDevDate()">reset</button>
+                    &middot;
+                    <button class="link-btn" style="color:#c0392b;" onclick="devResetHistory()">clear history</button>
+                </p>
             </div>
-            <div class="menu-list">
-                <button onclick="window.location.href='corsi.html'">Corsi Block-Tapping Task</button>
-                <button onclick="window.location.href='visualsearch.html'">Visual Search Task</button>
-                <button onclick="window.location.href='dccs.html'">Dimensional Change Card Sort</button>
-                <button onclick="window.location.href='wcsi.html'">Wisconsin Card Sorting Test</button>
-            </div>
+            <div id="calendar-grid"></div>
         </section>
+
     </div>
 
     <!-- Password-protected User ID reset -->
     <div id="reset-modal">
         <div id="reset-box">
             <h3>Change User ID</h3>
+            <p class="note" style="text-align:center;margin:0;">Setting a new User ID will reset the starting date.</p>
             <div class="setup-field">
                 <label for="reset-pwd">Password</label>
                 <input type="password" id="reset-pwd" placeholder="Enter password">
@@ -314,6 +446,26 @@
     </div>
 
     <script>
+        // Button-press sound: same 'pop' as in the tests (D5, 0.1s)
+        function playPop() {
+            try {
+                const ctx = new (window.AudioContext || window.webkitAudioContext)();
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+                osc.frequency.setValueAtTime(587.33, ctx.currentTime);
+                gain.gain.setValueAtTime(0.1, ctx.currentTime);
+                osc.start(); osc.stop(ctx.currentTime + 0.1);
+            } catch (e) {}
+        }
+
+        // Navigate after a beat so the pop is audible
+        function goTest(url) {
+            playPop();
+            setTimeout(() => { window.location.href = url; }, 120);
+        }
+
         const USER_KEY = 'cogtests_user_id';
         const MANAGER_PWD = '2357';
 
@@ -325,6 +477,8 @@
         function applyUserId(id) {
             localStorage.setItem(USER_KEY, id);
             document.getElementById('uid').textContent = id;
+            // Changing the User ID resets the 8-week schedule to start today
+            localStorage.setItem(START_KEY, toISO(new Date()));
         }
 
         // First-launch setup
@@ -335,12 +489,14 @@
             if (pwd !== MANAGER_PWD) { err.textContent = 'Incorrect password.'; return; }
             if (!id) { err.textContent = 'Please enter a user ID.'; return; }
             applyUserId(id);
-            showPage('page-1');
+            renderCalendar();
+            showPage('page-calendar');
         }
 
         function skipSetup() {
             applyUserId('guest');
-            showPage('page-1');
+            renderCalendar();
+            showPage('page-calendar');
         }
 
         // Password-protected reset flow
@@ -362,14 +518,181 @@
             if (pwd !== MANAGER_PWD) { err.textContent = 'Incorrect password.'; return; }
             if (!id) { err.textContent = 'Please enter a new ID.'; return; }
             applyUserId(id);
+            renderCalendar();
             closeResetModal();
+        }
+
+        // ─── 8-week schedule calendar ───────────────────────────────────────
+        const START_KEY = 'cogtests_start_date';
+
+        function toISO(d) {
+            const pad = n => String(n).padStart(2, '0');
+            return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+        }
+
+        function fromISO(s) {
+            const [y, m, d] = s.split('-').map(Number);
+            return new Date(y, m - 1, d); // local midnight
+        }
+
+        function addDays(d, n) {
+            return new Date(d.getFullYear(), d.getMonth(), d.getDate() + n);
+        }
+
+        // Monday of the week containing d (weeks run Mon-Sun)
+        function mondayOf(d) {
+            return addDays(d, -((d.getDay() + 6) % 7));
+        }
+
+        function getStartDate() {
+            let s = localStorage.getItem(START_KEY);
+            if (!s) { s = toISO(new Date()); localStorage.setItem(START_KEY, s); }
+            return fromISO(s);
+        }
+
+        // ─── Developer mode (User ID 0): simulated "today" ──────────────────
+        const DEV_DATE_KEY = 'cogtests_dev_date'; // sessionStorage, tab-scoped
+
+        function isDevMode() {
+            return (localStorage.getItem(USER_KEY) || '') === '0';
+        }
+
+        // What the calendar treats as "today": the simulated date in dev mode
+        function simToday() {
+            if (isDevMode()) {
+                const s = sessionStorage.getItem(DEV_DATE_KEY);
+                if (s) return fromISO(s);
+            }
+            return new Date();
+        }
+
+        function updateDevPanel() {
+            const panel = document.getElementById('dev-panel');
+            if (!isDevMode()) { panel.style.display = 'none'; return; }
+            panel.style.display = 'block';
+
+            const yearSel = document.getElementById('dev-year');
+            if (!yearSel.options.length) {
+                const thisYear = new Date().getFullYear();
+                const fill = (sel, values) => values.forEach(v => {
+                    const opt = document.createElement('option');
+                    opt.value = v;
+                    opt.textContent = v;
+                    sel.appendChild(opt);
+                });
+                fill(yearSel, [thisYear - 1, thisYear, thisYear + 1, thisYear + 2]);
+                fill(document.getElementById('dev-month'), [...Array(12).keys()].map(m => m + 1));
+                fill(document.getElementById('dev-day'), [...Array(31).keys()].map(d => d + 1));
+            }
+            const d = simToday();
+            yearSel.value = d.getFullYear();
+            document.getElementById('dev-month').value = d.getMonth() + 1;
+            document.getElementById('dev-day').value = d.getDate();
+        }
+
+        function applyDevDate() {
+            const y = Number(document.getElementById('dev-year').value);
+            const m = Number(document.getElementById('dev-month').value);
+            const d = Number(document.getElementById('dev-day').value);
+            sessionStorage.setItem(DEV_DATE_KEY, toISO(new Date(y, m - 1, d)));
+            renderCalendar();
+        }
+
+        function clearDevDate() {
+            sessionStorage.removeItem(DEV_DATE_KEY);
+            updateDevPanel();
+            renderCalendar();
+        }
+
+        // Wipe browser-side collected data so data collection starts over
+        function devResetHistory() {
+            if (!confirm('Clear completion history, session log, and pending upload queue?')) return;
+            localStorage.removeItem('cogtests_completions');
+            localStorage.removeItem(PENDING_KEY);
+            sessionStorage.removeItem('cogtests_session_log');
+            updatePendingIndicator();
+            renderCalendar();
+        }
+
+        // Dates on which the current user completed all four tests
+        function completedDays() {
+            try {
+                const rec = JSON.parse(localStorage.getItem('cogtests_completions'));
+                const user = localStorage.getItem(USER_KEY) || 'guest';
+                if (!rec || rec.user_id !== user || !rec.days) return new Set();
+                const all = ['corsi', 'vst', 'dccs', 'wcst'];
+                return new Set(Object.keys(rec.days)
+                    .filter(day => all.every(g => rec.days[day].includes(g))));
+            } catch (e) { return new Set(); }
+        }
+
+        function renderCalendar() {
+            updateDevPanel();
+            const start = getStartDate();
+            const end = addDays(start, 56); // start + 8 weeks
+            const fmt = d => d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+            document.getElementById('schedule-range').textContent = `${fmt(start)} – ${fmt(end)}`;
+
+            const grid = document.getElementById('calendar-grid');
+            grid.innerHTML = '';
+
+            // Header row: empty corner + weekday abbreviations
+            const corner = document.createElement('div');
+            corner.className = 'cal-head';
+            grid.appendChild(corner);
+            ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su'].forEach(name => {
+                const head = document.createElement('div');
+                head.className = 'cal-head';
+                head.textContent = name;
+                grid.appendChild(head);
+            });
+
+            // A start on any weekday plus 56 days always spans exactly 9 Mon-Sun rows
+            const gridStart = mondayOf(start);
+            const currentMonday = mondayOf(simToday());
+            const doneDays = completedDays();
+
+            for (let w = 0; w < 9; w++) {
+                const label = document.createElement('div');
+                label.className = 'cal-week';
+                label.textContent = 'W' + (w + 1);
+                grid.appendChild(label);
+
+                for (let d = 0; d < 7; d++) {
+                    const date = addDays(gridStart, w * 7 + d);
+                    const btn = document.createElement('button');
+                    btn.className = 'cal-day';
+                    btn.disabled = true;
+                    if (date < start || date > end) {
+                        btn.classList.add('blank');
+                    } else {
+                        btn.textContent = date.getDate();
+                        // Mondays are test days; only the current week's is available
+                        if (d === 0) {
+                            if (date.getTime() === currentMonday.getTime()) {
+                                btn.classList.add('active');
+                                btn.disabled = false;
+                                btn.onclick = () => goTest('menu.html');
+                            } else {
+                                btn.classList.add('sched');
+                            }
+                        }
+                        // Days on which all four tests were completed stay green
+                        if (doneDays.has(toISO(date))) {
+                            btn.classList.add('done');
+                        }
+                    }
+                    grid.appendChild(btn);
+                }
+            }
         }
 
         // On load: reuse the stored ID, or ask the manager to set one
         const savedId = localStorage.getItem(USER_KEY);
         if (savedId) {
             document.getElementById('uid').textContent = savedId;
-            showPage('page-1');
+            renderCalendar();
+            showPage('page-calendar');
         } else {
             showPage('page-setup');
         }

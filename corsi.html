@@ -69,6 +69,27 @@
             color: #555;
         }
 
+        /* Sequence step dots above the board: blue = pending, red = shown
+           during the demo, green = correctly tapped */
+        #seq-dots {
+            display: flex;
+            gap: 6px;
+            justify-content: center;
+            align-items: center;
+            min-height: 20px;
+            margin-bottom: 8px;
+        }
+
+        .dot {
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            background: #3498db;
+        }
+
+        .dot.red { background: #e74c3c; }
+        .dot.green { background: #2ecc71; }
+
         #board {
             background: #fff;
             border-radius: 10px;
@@ -82,6 +103,16 @@
             touch-action: manipulation;
             -webkit-user-select: none;
             user-select: none;
+            /* Outline signals the board state; transparent = input closed */
+            border: 3px solid transparent;
+        }
+
+        #board.demo {
+            border-color: #e74c3c; /* red: demonstration, watch */
+        }
+
+        #board.input {
+            border-color: #2ecc71; /* green: your turn, touchable */
         }
 
         #board.disabled {
@@ -113,7 +144,7 @@
 </head>
 <body>
 
-<button onclick="window.location.href='index.html'" style="position:fixed;top:12px;left:12px;background-color:#95a5a6;color:white;border:none;padding:6px 14px;font-size:14px;border-radius:4px;cursor:pointer;z-index:10;">Back</button>
+<button onclick="window.location.href='menu.html'" style="position:fixed;top:12px;left:12px;background-color:#95a5a6;color:white;border:none;padding:6px 14px;font-size:14px;border-radius:4px;cursor:pointer;z-index:10;">Back</button>
 
 <div style="position:fixed;top:12px;right:12px;background-color:#e8e8ee;color:#555;padding:6px 14px;font-size:14px;border-radius:4px;z-index:10;">User: <span id="user-badge"></span></div>
 <script>document.getElementById('user-badge').textContent = localStorage.getItem('cogtests_user_id') || 'guest';</script>
@@ -129,6 +160,8 @@
     <div id="progress"></div>
 
     <div id="status"></div>
+
+    <div id="seq-dots"></div>
 
     <canvas id="board" class="disabled" width="440" height="590"></canvas>
 
@@ -162,7 +195,35 @@
             sessionLog.push(entry);
             try { sessionStorage.setItem(SESSION_LOG_KEY, JSON.stringify(sessionLog)); } catch (e) {}
             console.log('COGTEST_LOG', entry);
-            if (typeof DF_GAME !== 'undefined') sendToDataFoundry(DF_GAME, entry);
+            if (typeof DF_GAME !== 'undefined') {
+                sendToDataFoundry(DF_GAME, entry);
+                markCompleted(DF_GAME);
+            }
+        }
+
+        // Dev mode (User ID 0): completion dates follow the simulated calendar date
+        function devTodayISO() {
+            if ((localStorage.getItem('cogtests_user_id') || '') === '0') {
+                const s = sessionStorage.getItem('cogtests_dev_date');
+                if (s) return s;
+            }
+            return formatTimestamp().slice(0, 10); // yyyy-mm-dd
+        }
+
+        // Record the completion in the per-day history so the menu / calendar can
+        // show it in green; completed days persist, a new user restarts the record
+        function markCompleted(game) {
+            try {
+                const user = localStorage.getItem('cogtests_user_id') || 'guest';
+                const today = devTodayISO();
+                let rec = null;
+                try { rec = JSON.parse(localStorage.getItem('cogtests_completions')); } catch (e) {}
+                if (!rec || rec.user_id !== user || !rec.days) rec = { user_id: user, days: {} };
+                const day = rec.days[today] || [];
+                if (!day.includes(game)) day.push(game);
+                rec.days[today] = day;
+                localStorage.setItem('cogtests_completions', JSON.stringify(rec));
+            } catch (e) {}
         }
 
         const DF_GAME = 'corsi'; // this page's Data Foundry dataset
@@ -249,14 +310,61 @@
         updatePendingIndicator();
         drainPending();
 
+        // --- Audio Synthesis Engine (same logic as the DCCS test) ---
+        const AudioEngine = {
+            ctx: null,
+            init() { this.ctx = new (window.AudioContext || window.webkitAudioContext)(); },
+            play(type) {
+                if(!this.ctx) this.init();
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+
+                if(type === 'pop') {
+                    osc.frequency.setValueAtTime(587.33, this.ctx.currentTime); // D5
+                    gain.gain.setValueAtTime(0.1, this.ctx.currentTime);
+                    osc.start(); osc.stop(this.ctx.currentTime + 0.1);
+                } else if(type === 'success') {
+                    osc.frequency.setValueAtTime(523.25, this.ctx.currentTime); // C5
+                    osc.frequency.exponentialRampToValueAtTime(880, this.ctx.currentTime + 0.15);
+                    gain.gain.setValueAtTime(0.1, this.ctx.currentTime);
+                    osc.start(); osc.stop(this.ctx.currentTime + 0.2);
+                } else if(type === 'fail') {
+                    osc.frequency.setValueAtTime(220, this.ctx.currentTime); // A3
+                    osc.frequency.linearRampToValueAtTime(110, this.ctx.currentTime + 0.2);
+                    gain.gain.setValueAtTime(0.2, this.ctx.currentTime);
+                    osc.start(); osc.stop(this.ctx.currentTime + 0.25);
+                }
+            }
+        };
+
         const canvas = document.getElementById('board');
         const ctx = canvas.getContext('2d');
         const statusText = document.getElementById('status');
         const startBtn = document.getElementById('start-btn');
         const messagePanel = document.getElementById('message-panel');
 
+        // Outcome sounds, same as the WCST test (correct: 600Hz, error: 200Hz)
+        function playBeep(freq, duration) {
+            try {
+                let audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                let oscillator = audioCtx.createOscillator();
+                let gainNode = audioCtx.createGain();
+                oscillator.type = 'sine';
+                oscillator.frequency.value = freq;
+                gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime);
+                oscillator.connect(gainNode);
+                gainNode.connect(audioCtx.destination);
+                oscillator.start();
+                oscillator.stop(audioCtx.currentTime + duration);
+            } catch(e) {
+                console.log("Audio contextual drivers locked.");
+            }
+        }
+
         const NUM_BLOCKS = 9;
-        const BLOCK_SIZE = 60;
+        const BLOCK_SIZE = 66; // 110% of the original 60px
         const MIN_GAP = 30;       // Minimum spacing between block edges
         const BOARD_MARGIN = 25;  // Keep blocks away from the canvas edge
 
@@ -283,6 +391,26 @@
         const ADJACENT_DIST = BLOCK_SIZE * 2.5;
 
         const progressText = document.getElementById('progress');
+        const seqDots = document.getElementById('seq-dots');
+
+        // One dot per sequence step, rebuilt blue at every round start
+        function buildDots(n) {
+            seqDots.innerHTML = '';
+            for (let i = 0; i < n; i++) {
+                const dot = document.createElement('div');
+                dot.className = 'dot';
+                seqDots.appendChild(dot);
+            }
+        }
+
+        function setDot(i, color) {
+            const dot = seqDots.children[i];
+            if (dot) dot.className = 'dot ' + color;
+        }
+
+        function resetDots() {
+            [...seqDots.children].forEach(dot => dot.className = 'dot');
+        }
 
         // Scatter identical blocks at random, non-overlapping positions
         function generateLayout() {
@@ -335,6 +463,7 @@
         }
 
         function startGame() {
+            AudioEngine.play('pop');
             sequence = [];
             currentSequenceLength = 2;
             trialsAtLength = 0;
@@ -351,9 +480,11 @@
 
         function nextRound() {
             userSequence = [];
-            progressText.textContent = `Length ${currentSequenceLength}, round ${trialsAtLength + 1} (of 2)`;
+            progressText.textContent = `Round ${trialsAtLength + 1} (of 2)`;
             statusText.textContent = 'Watch the sequence';
-            canvas.classList.add('disabled');
+            buildDots(currentSequenceLength);
+            canvas.classList.add('disabled', 'demo');
+            canvas.classList.remove('input');
 
             // Generate a fresh random sequence for this round length
             sequence = [];
@@ -411,11 +542,14 @@
             if (index >= sequence.length) {
                 // Sequence finished playing, hand over control to the user
                 statusText.textContent = 'Your turn! Repeat the sequence.';
-                canvas.classList.remove('disabled');
+                resetDots(); // back to blue for the input stage
+                canvas.classList.remove('disabled', 'demo');
+                canvas.classList.add('input');
                 return;
             }
 
             setTimeout(() => {
+                setDot(index, 'red'); // mark the step being demonstrated
                 flashBlock(sequence[index], 600, () => {
                     // Move to the next block in the sequence after a short delay
                     setTimeout(() => playSequence(index + 1), 300);
@@ -433,7 +567,8 @@
             );
             if (clicked === -1) return;
 
-            // Visual feedback for user click
+            // Audio + visual feedback for user click
+            AudioEngine.play('pop');
             flashBlock(clicked, 150);
 
             userSequence.push(clicked);
@@ -441,7 +576,9 @@
 
             // Check if user clicked the wrong block
             if (userSequence[currentCheckIndex] !== sequence[currentCheckIndex]) {
+                playBeep(200, 0.3); // WCST error sound
                 canvas.classList.add('disabled');
+                canvas.classList.remove('input'); // outcome decided: outline off
                 trialsAtLength++;
                 totalErrors++;
 
@@ -456,9 +593,14 @@
                 return;
             }
 
+            // Correct tap: mark this step green (wrong steps stay blue)
+            setDot(currentCheckIndex, 'green');
+
             // Check if user successfully finished the entire current sequence
             if (userSequence.length === sequence.length) {
+                playBeep(600, 0.15); // WCST correct sound
                 canvas.classList.add('disabled');
+                canvas.classList.remove('input'); // outcome decided: outline off
                 trialsAtLength++;
                 passesAtLength++;
                 totalScore++; // Cumulative trials score: 1 point per correct sequence

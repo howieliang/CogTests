@@ -215,7 +215,7 @@
 </head>
 <body>
 
-<button onclick="window.location.href='index.html'" style="position:fixed;top:12px;left:12px;background-color:#95a5a6;color:white;border:none;padding:6px 14px;font-size:14px;border-radius:4px;cursor:pointer;z-index:10;">Back</button>
+<button onclick="window.location.href='menu.html'" style="position:fixed;top:12px;left:12px;background-color:#95a5a6;color:white;border:none;padding:6px 14px;font-size:14px;border-radius:4px;cursor:pointer;z-index:10;">Back</button>
 
 <div style="position:fixed;top:12px;right:12px;background-color:#e8e8ee;color:#555;padding:6px 14px;font-size:14px;border-radius:4px;z-index:10;">User: <span id="user-badge"></span></div>
 <script>document.getElementById('user-badge').textContent = localStorage.getItem('cogtests_user_id') || 'guest';</script>
@@ -276,7 +276,35 @@
         sessionLog.push(entry);
         try { sessionStorage.setItem(SESSION_LOG_KEY, JSON.stringify(sessionLog)); } catch (e) {}
         console.log('COGTEST_LOG', entry);
-        if (typeof DF_GAME !== 'undefined') sendToDataFoundry(DF_GAME, entry);
+        if (typeof DF_GAME !== 'undefined') {
+            sendToDataFoundry(DF_GAME, entry);
+            markCompleted(DF_GAME);
+        }
+    }
+
+    // Dev mode (User ID 0): completion dates follow the simulated calendar date
+    function devTodayISO() {
+        if ((localStorage.getItem('cogtests_user_id') || '') === '0') {
+            const s = sessionStorage.getItem('cogtests_dev_date');
+            if (s) return s;
+        }
+        return formatTimestamp().slice(0, 10); // yyyy-mm-dd
+    }
+
+    // Record the completion in the per-day history so the menu / calendar can
+    // show it in green; completed days persist, a new user restarts the record
+    function markCompleted(game) {
+        try {
+            const user = localStorage.getItem('cogtests_user_id') || 'guest';
+            const today = devTodayISO();
+            let rec = null;
+            try { rec = JSON.parse(localStorage.getItem('cogtests_completions')); } catch (e) {}
+            if (!rec || rec.user_id !== user || !rec.days) rec = { user_id: user, days: {} };
+            const day = rec.days[today] || [];
+            if (!day.includes(game)) day.push(game);
+            rec.days[today] = day;
+            localStorage.setItem('cogtests_completions', JSON.stringify(rec));
+        } catch (e) {}
     }
 
     const DF_GAME = 'dccs'; // this page's Data Foundry dataset
@@ -418,6 +446,7 @@
     let pendingStart = () => runKeyLearningBlock('left');
 
     function startTest() {
+        AudioEngine.play('pop');
         document.getElementById('message-panel').style.display = 'none';
         pendingStart();
     }
@@ -731,7 +760,7 @@
         });
 
         // Completion panel with a restart button, like the Corsi task
-        showModeIntro('Thank you! Task completed.', 'Try Again', () => location.reload());
+        showModeIntro('Thank you! Task completed.', 'Try Again', () => setTimeout(() => location.reload(), 120));
     }
 </script>
 

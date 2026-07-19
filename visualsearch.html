@@ -233,7 +233,7 @@
 </head>
 <body>
 
-<button onclick="window.location.href='index.html'" style="position:fixed;top:12px;left:12px;background-color:#95a5a6;color:white;border:none;padding:6px 14px;font-size:14px;border-radius:4px;cursor:pointer;z-index:10;">Back</button>
+<button onclick="window.location.href='menu.html'" style="position:fixed;top:12px;left:12px;background-color:#95a5a6;color:white;border:none;padding:6px 14px;font-size:14px;border-radius:4px;cursor:pointer;z-index:10;">Back</button>
 
 <div style="position:fixed;top:12px;right:12px;background-color:#e8e8ee;color:#555;padding:6px 14px;font-size:14px;border-radius:4px;z-index:10;">User: <span id="user-badge"></span></div>
 <script>document.getElementById('user-badge').textContent = localStorage.getItem('cogtests_user_id') || 'guest';</script>
@@ -295,7 +295,35 @@
             sessionLog.push(entry);
             try { sessionStorage.setItem(SESSION_LOG_KEY, JSON.stringify(sessionLog)); } catch (e) {}
             console.log('COGTEST_LOG', entry);
-            if (typeof DF_GAME !== 'undefined') sendToDataFoundry(DF_GAME, entry);
+            if (typeof DF_GAME !== 'undefined') {
+                sendToDataFoundry(DF_GAME, entry);
+                markCompleted(DF_GAME);
+            }
+        }
+
+        // Dev mode (User ID 0): completion dates follow the simulated calendar date
+        function devTodayISO() {
+            if ((localStorage.getItem('cogtests_user_id') || '') === '0') {
+                const s = sessionStorage.getItem('cogtests_dev_date');
+                if (s) return s;
+            }
+            return formatTimestamp().slice(0, 10); // yyyy-mm-dd
+        }
+
+        // Record the completion in the per-day history so the menu / calendar can
+        // show it in green; completed days persist, a new user restarts the record
+        function markCompleted(game) {
+            try {
+                const user = localStorage.getItem('cogtests_user_id') || 'guest';
+                const today = devTodayISO();
+                let rec = null;
+                try { rec = JSON.parse(localStorage.getItem('cogtests_completions')); } catch (e) {}
+                if (!rec || rec.user_id !== user || !rec.days) rec = { user_id: user, days: {} };
+                const day = rec.days[today] || [];
+                if (!day.includes(game)) day.push(game);
+                rec.days[today] = day;
+                localStorage.setItem('cogtests_completions', JSON.stringify(rec));
+            } catch (e) {}
         }
 
         const DF_GAME = 'vst'; // this page's Data Foundry dataset
@@ -382,6 +410,35 @@
         updatePendingIndicator();
         drainPending();
 
+        // --- Audio Synthesis Engine (same logic as the DCCS test) ---
+        const AudioEngine = {
+            ctx: null,
+            init() { this.ctx = new (window.AudioContext || window.webkitAudioContext)(); },
+            play(type) {
+                if(!this.ctx) this.init();
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+
+                if(type === 'pop') {
+                    osc.frequency.setValueAtTime(587.33, this.ctx.currentTime); // D5
+                    gain.gain.setValueAtTime(0.1, this.ctx.currentTime);
+                    osc.start(); osc.stop(this.ctx.currentTime + 0.1);
+                } else if(type === 'success') {
+                    osc.frequency.setValueAtTime(523.25, this.ctx.currentTime); // C5
+                    osc.frequency.exponentialRampToValueAtTime(880, this.ctx.currentTime + 0.15);
+                    gain.gain.setValueAtTime(0.1, this.ctx.currentTime);
+                    osc.start(); osc.stop(this.ctx.currentTime + 0.2);
+                } else if(type === 'fail') {
+                    osc.frequency.setValueAtTime(220, this.ctx.currentTime); // A3
+                    osc.frequency.linearRampToValueAtTime(110, this.ctx.currentTime + 0.2);
+                    gain.gain.setValueAtTime(0.2, this.ctx.currentTime);
+                    osc.start(); osc.stop(this.ctx.currentTime + 0.25);
+                }
+            }
+        };
+
         // ── Design constants ─────────────────────────────────────────────────
         const SET_SIZES = [4, 8, 16, 32];
         const REPS_PER_CONDITION = 4;   // 4 set sizes x present/absent x 4 = 32 trials per block
@@ -464,7 +521,8 @@
 
         // ── Phase / trial flow ───────────────────────────────────────────────
         continueBtn.addEventListener('click', () => {
-            if (sessionOver) { location.reload(); return; }
+            AudioEngine.play('pop');
+            if (sessionOver) { setTimeout(() => location.reload(), 120); return; }
             messagePanel.style.display = 'none';
             document.getElementById('progress-bar-container').style.display = 'block';
             trialIndex = 0;
@@ -667,8 +725,8 @@
         }
 
         // ── Responses via the on-screen buttons ─────────────────────────────
-        presentBtn.addEventListener('click', () => respond(true));
-        absentBtn.addEventListener('click', () => respond(false));
+        presentBtn.addEventListener('click', () => { AudioEngine.play('pop'); respond(true); });
+        absentBtn.addEventListener('click', () => { AudioEngine.play('pop'); respond(false); });
 
         // ── Results ──────────────────────────────────────────────────────────
         function conditionStats(type, present) {
