@@ -189,8 +189,27 @@
             background: #27ae60;
         }
 
+        /* Past days that were completed: muted/light green, distinct from today's bright .done */
+        .cal-day.done-past {
+            background: #d4edda;
+            color: #155724;
+        }
+
         .cal-day.blank {
             background: transparent;
+        }
+
+        /* Orange ring marking the actual current day (simToday), independent of test-day styling */
+        .cal-day.today {
+            outline: 2px solid #e67e22;
+            outline-offset: -2px;
+        }
+
+        .cal-day .cal-month {
+            display: block;
+            font-size: 0.55rem;
+            font-weight: normal;
+            line-height: 1.1;
         }
 
         /* User ID line in the menu header */
@@ -393,7 +412,7 @@
                 <h1>Portal</h1>
                 <p id="schedule-range"></p>
                 <p class="user-line">User ID: <strong id="uid"></strong><button class="link-btn" onclick="openResetModal()">Change</button></p>
-                <p class="note">Complete the cognitive tests on each scheduled day. Play the Mind In Images Game any time you like.</p>
+                <p class="note">Complete the cognitive tests on each scheduled day. <br/> Play the Mind In Images Game any time you like.</p>
                 <p id="pending-indicator" style="display:none;color:#c0392b;font-size:0.8rem;margin-top:8px;cursor:pointer;" onclick="openPendingModal()">&#9888; <span id="pending-count">0</span> unsent log(s) &mdash; tap to view</p>
                 <p id="dev-panel" class="note" style="display:none;">
                     Dev date:
@@ -647,7 +666,8 @@
 
             // A start on any weekday plus 56 days always spans exactly 9 Mon-Sun rows
             const gridStart = mondayOf(start);
-            const currentMonday = mondayOf(simToday());
+            const todayISO = toISO(simToday());
+            const todayDate = fromISO(todayISO); // midnight Date, for past/present comparisons
             const doneDays = completedDays();
 
             for (let w = 0; w < 9; w++) {
@@ -664,10 +684,15 @@
                     if (date < start || date > end) {
                         btn.classList.add('blank');
                     } else {
-                        btn.textContent = date.getDate();
-                        // Mondays are test days; only the current week's is available
-                        if (d === 0) {
-                            if (date.getTime() === currentMonday.getTime()) {
+                        if (date.getDate() === 1) {
+                            btn.innerHTML = `<span class="cal-month">${date.toLocaleDateString('en-US', { month: 'short' })}</span>${date.getDate()}`;
+                        } else {
+                            btn.textContent = date.getDate();
+                        }
+                        // Mondays are test days, plus the schedule's very first day (whatever weekday), so
+                        // participants can start immediately on enrollment day rather than waiting for a Monday
+                        if (d === 0 || date.getTime() === start.getTime()) {
+                            if (toISO(date) === todayISO) {
                                 btn.classList.add('active');
                                 btn.disabled = false;
                                 btn.onclick = () => goTest('menu.html');
@@ -675,9 +700,14 @@
                                 btn.classList.add('sched');
                             }
                         }
-                        // Days on which all four tests were completed stay green
+                        // Days on which all four tests were completed stay green; past ones are
+                        // muted to signal they're historical rather than today's fresh completion
                         if (doneDays.has(toISO(date))) {
-                            btn.classList.add('done');
+                            btn.classList.add(date.getTime() < todayDate.getTime() ? 'done-past' : 'done');
+                        }
+                        // Orange ring marks the actual current day, regardless of test-day status
+                        if (toISO(date) === todayISO) {
+                            btn.classList.add('today');
                         }
                     }
                     grid.appendChild(btn);
