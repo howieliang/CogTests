@@ -108,8 +108,6 @@
         <div class="menu-list">
             <button data-game="corsi" onclick="goTest('corsi.html')">Corsi Block-Tapping (~3 minutes)</button>
             <button data-game="vst" onclick="goTest('visualsearch.html')">Visual Search (~5 minutes)</button>
-            <button data-game="dccs" onclick="goTest('dccs.html')">Dimensional Change Card Sort (~5 minutes)</button>
-            <button data-game="wcst" onclick="goTest('wcsi.html')">Wisconsin Card Sorting (~10 minutes)</button>
         </div>
         <button id="dev-done-btn" onclick="devSetDone()">Set done</button>
     </div>
@@ -169,7 +167,7 @@
 
         markDoneButtons();
 
-        // Developer shortcut (User ID 0): mark all four tests complete
+        // Developer shortcut (User ID 0): mark both tests complete
         // for the current (possibly simulated) day
         function devSetDone() {
             playPop();
@@ -177,7 +175,7 @@
             let rec = null;
             try { rec = JSON.parse(localStorage.getItem(COMPLETIONS_KEY)); } catch (e) {}
             if (!rec || rec.user_id !== user || !rec.days) rec = { user_id: user, days: {} };
-            rec.days[devTodayISO()] = ['corsi', 'vst', 'dccs', 'wcst'];
+            rec.days[devTodayISO()] = ['corsi', 'vst'];
             localStorage.setItem(COMPLETIONS_KEY, JSON.stringify(rec));
             markDoneButtons();
         }

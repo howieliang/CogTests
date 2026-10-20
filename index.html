@@ -128,7 +128,7 @@
             color: #555;
         }
 
-        /* Calendar: 9 Monday-aligned weeks x 7 days, week labels on the left */
+        /* Calendar: 5 Monday-aligned weeks x 7 days, week labels on the left */
         #calendar-grid {
             display: grid;
             grid-template-columns: 36px repeat(7, 1fr);
@@ -162,7 +162,7 @@
             color: #999;
         }
 
-        /* Scheduled Mondays outside the current week */
+        /* Scheduled test days (Mon/Thu) outside the current week */
         .cal-day.sched {
             background: #d8e9f7;
             color: #3f7fb5;
@@ -179,7 +179,7 @@
             background: #2980b9;
         }
 
-        /* Today's cell once all four tests are completed */
+        /* Today's cell once both tests are completed */
         .cal-day.done {
             background: #2ecc71;
             color: #fff;
@@ -494,7 +494,7 @@
         function applyUserId(id) {
             localStorage.setItem(USER_KEY, id);
             document.getElementById('uid').textContent = id;
-            // Changing the User ID resets the 8-week schedule to start today
+            // Changing the User ID resets the 4-week schedule to start today
             localStorage.setItem(START_KEY, toISO(new Date()));
         }
 
@@ -539,7 +539,7 @@
             closeResetModal();
         }
 
-        // ─── 8-week schedule calendar ───────────────────────────────────────
+        // ─── 4-week schedule calendar ───────────────────────────────────────
         const START_KEY = 'cogtests_start_date';
 
         function toISO(d) {
@@ -631,13 +631,13 @@
             renderCalendar();
         }
 
-        // Dates on which the current user completed all four tests
+        // Dates on which the current user completed both tests
         function completedDays() {
             try {
                 const rec = JSON.parse(localStorage.getItem('cogtests_completions'));
                 const user = localStorage.getItem(USER_KEY) || 'guest';
                 if (!rec || rec.user_id !== user || !rec.days) return new Set();
-                const all = ['corsi', 'vst', 'dccs', 'wcst'];
+                const all = ['corsi', 'vst'];
                 return new Set(Object.keys(rec.days)
                     .filter(day => all.every(g => rec.days[day].includes(g))));
             } catch (e) { return new Set(); }
@@ -646,7 +646,7 @@
         function renderCalendar() {
             updateDevPanel();
             const start = getStartDate();
-            const end = addDays(start, 56); // start + 8 weeks
+            const end = addDays(start, 28); // start + 4 weeks
             const fmt = d => d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
             document.getElementById('schedule-range').textContent = `${fmt(start)} – ${fmt(end)}`;
 
@@ -664,13 +664,13 @@
                 grid.appendChild(head);
             });
 
-            // A start on any weekday plus 56 days always spans exactly 9 Mon-Sun rows
+            // A start on any weekday plus 28 days always spans exactly 5 Mon-Sun rows
             const gridStart = mondayOf(start);
             const todayISO = toISO(simToday());
             const todayDate = fromISO(todayISO); // midnight Date, for past/present comparisons
             const doneDays = completedDays();
 
-            for (let w = 0; w < 9; w++) {
+            for (let w = 0; w < 5; w++) {
                 const label = document.createElement('div');
                 label.className = 'cal-week';
                 label.textContent = 'W' + (w + 1);
@@ -689,9 +689,9 @@
                         } else {
                             btn.textContent = date.getDate();
                         }
-                        // Mondays are test days, plus the schedule's very first day (whatever weekday), so
-                        // participants can start immediately on enrollment day rather than waiting for a Monday
-                        if (d === 0 || date.getTime() === start.getTime()) {
+                        // Mondays and Thursdays are test days, plus the schedule's very first day (whatever
+                        // weekday), so participants can start immediately on enrollment day rather than waiting
+                        if (d === 0 || d === 3 || date.getTime() === start.getTime()) {
                             if (toISO(date) === todayISO) {
                                 btn.classList.add('active');
                                 btn.disabled = false;
@@ -700,7 +700,7 @@
                                 btn.classList.add('sched');
                             }
                         }
-                        // Days on which all four tests were completed stay green; past ones are
+                        // Days on which both tests were completed stay green; past ones are
                         // muted to signal they're historical rather than today's fresh completion
                         if (doneDays.has(toISO(date))) {
                             btn.classList.add(date.getTime() < todayDate.getTime() ? 'done-past' : 'done');
