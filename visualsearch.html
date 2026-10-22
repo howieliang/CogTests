@@ -233,19 +233,19 @@
 </head>
 <body>
 
-<button onclick="window.location.href='menu.html'" style="position:fixed;top:12px;left:12px;background-color:#95a5a6;color:white;border:none;padding:6px 14px;font-size:14px;border-radius:4px;cursor:pointer;z-index:10;">Back</button>
+<button onclick="window.location.href='menu.html'" style="position:fixed;top:12px;left:12px;background-color:#95a5a6;color:white;border:none;padding:6px 14px;font-size:14px;border-radius:4px;cursor:pointer;z-index:10;" data-i18n="back">Back</button>
 
-<div style="position:fixed;top:12px;right:12px;background-color:#e8e8ee;color:#555;padding:6px 14px;font-size:14px;border-radius:4px;z-index:10;">User: <span id="user-badge"></span></div>
+<div style="position:fixed;top:12px;right:12px;background-color:#e8e8ee;color:#555;padding:6px 14px;font-size:14px;border-radius:4px;z-index:10;"><span data-i18n="user_label">User:</span> <span id="user-badge"></span></div>
 <script>document.getElementById('user-badge').textContent = localStorage.getItem('cogtests_user_id') || 'guest';</script>
 
     <header>
-        <h1>Visual Search Task</h1>
-        <p class="instructions">Target: <span class="inline-target"></span>. Tap <strong>Present</strong> if you see it, <strong>Absent</strong> if you don't.</p>
+        <h1 data-i18n="vs_title">Visual Search Task</h1>
+        <p class="instructions" data-i18n-html="vs_instructions">Target: <span class="inline-target"></span>. Tap <strong>Present</strong> if you see it, <strong>Absent</strong> if you don't.</p>
     </header>
 
     <div id="message-panel">
-        <p id="message-text">The session starts with a short practice block (12 trials with feedback), followed by two blocks of 32 trials each: Feature search and Conjunction search. Respond as quickly and accurately as possible.</p>
-        <button id="continue-btn" class="btn-start">Start Practice</button>
+        <p id="message-text" data-i18n="vs_intro">The session starts with a short practice block (12 trials with feedback), followed by two blocks of 32 trials each: Feature search and Conjunction search. Respond as quickly and accurately as possible.</p>
+        <button id="continue-btn" class="btn-start" data-i18n="vs_start">Start Practice</button>
     </div>
 
     <div id="progress"></div>
@@ -261,10 +261,11 @@
     <div id="feedback"></div>
 
     <div class="response-panel">
-        <button id="absent-btn" class="btn-response btn-absent" disabled>Absent</button>
-        <button id="present-btn" class="btn-response btn-present" disabled><span class="inline-target"></span> Present</button>
+        <button id="absent-btn" class="btn-response btn-absent" disabled data-i18n="absent_word">Absent</button>
+        <button id="present-btn" class="btn-response btn-present" disabled data-i18n-html="vs_present"><span class="inline-target"></span> Present</button>
     </div>
 
+    <script src="lang.js"></script>
     <script>
         // ─── Session logging ─────────────────────────────────────────────────────
         // One entry per completed session: user id, game type, timestamp, metrics.
@@ -509,10 +510,12 @@
         }
 
         function buildSession() {
+            // labelKey resolves through t() at render time so the phase name follows
+            // the selected language
             phases = [
-                { label: 'Practice', isPractice: true, trials: makePracticeSchedule() },
-                { label: 'Feature search', isPractice: false, trials: makeBlockSchedule('feature') },
-                { label: 'Conjunction search', isPractice: false, trials: makeBlockSchedule('conjunction') }
+                { labelKey: 'phase_practice', isPractice: true, trials: makePracticeSchedule() },
+                { labelKey: 'phase_feature', isPractice: false, trials: makeBlockSchedule('feature') },
+                { labelKey: 'phase_conj', isPractice: false, trials: makeBlockSchedule('conjunction') }
             ];
             phaseIndex = 0;
             trialIndex = 0;
@@ -552,7 +555,7 @@
         function runTrial() {
             trial = phases[phaseIndex].trials[trialIndex];
             const phase = phases[phaseIndex];
-            progressText.textContent = `${phase.label} — Trial ${trialIndex + 1} / ${phase.trials.length}`;
+            progressText.textContent = t('vs_progress', { label: t(phase.labelKey), i: trialIndex + 1, n: phase.trials.length });
             feedback.textContent = '';
 
             // Jittered fixation cross (500-800ms), then stimuli
@@ -621,13 +624,13 @@
                 // Feedback only during practice
                 if (answer === null) {
                     feedback.className = 'error';
-                    feedback.innerHTML = 'Time out. Try to respond in 5 seconds.';
+                    feedback.innerHTML = t('vs_timeout');
                 } else if (correct) {
                     feedback.className = 'success';
-                    feedback.innerHTML = `Correct! &#9989; Response Time: ${rt}ms`;
+                    feedback.innerHTML = t('vs_correct', { rt });
                 } else {
                     feedback.className = 'error';
-                    feedback.innerHTML = `Incorrect &#10060; Target was actually ${trial.present ? 'Present' : 'Absent'}.`;
+                    feedback.innerHTML = t('vs_incorrect', { state: trial.present ? t('present_word') : t('absent_word') });
                 }
             } else {
                 data.push({
@@ -664,10 +667,9 @@
             // Transition screen before the next block
             const next = phases[phaseIndex];
             const blockNum = phaseIndex; // phase 1 -> block 1, phase 2 -> block 2
-            messageText.innerHTML = (phases[phaseIndex - 1].isPractice
-                ? 'Practice complete! The main experiment starts now — no more feedback will be given. ' : '')
-                + `Block ${blockNum} of 2: ${next.label} — 32 trials.`;
-            continueBtn.textContent = 'Continue';
+            messageText.innerHTML = (phases[phaseIndex - 1].isPractice ? t('vs_practice_done') : '')
+                + t('vs_block', { n: blockNum, label: t(next.labelKey) });
+            continueBtn.textContent = t('continue');
             messagePanel.style.display = 'block';
         }
 
@@ -775,8 +777,8 @@
             progressText.textContent = '';
             container.style.display = 'none';
             document.querySelector('.response-panel').style.display = 'none';
-            messageText.textContent = 'Thank you! Task completed.';
-            continueBtn.textContent = 'Try Again';
+            messageText.textContent = t('thank_you_done');
+            continueBtn.textContent = t('try_again');
             messagePanel.style.display = 'block';
         }
 

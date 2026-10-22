@@ -96,22 +96,23 @@
 </head>
 <body>
 
-<button onclick="window.location.href='index.html'" style="position:fixed;top:12px;left:12px;background-color:#95a5a6;color:white;border:none;padding:6px 14px;font-size:14px;border-radius:4px;cursor:pointer;z-index:10;">Back</button>
+<button onclick="window.location.href='index.html'" style="position:fixed;top:12px;left:12px;background-color:#95a5a6;color:white;border:none;padding:6px 14px;font-size:14px;border-radius:4px;cursor:pointer;z-index:10;" data-i18n="back">Back</button>
 
-<div style="position:fixed;top:12px;right:12px;background-color:#e8e8ee;color:#555;padding:6px 14px;font-size:14px;border-radius:4px;z-index:10;">User: <span id="user-badge"></span></div>
+<div style="position:fixed;top:12px;right:12px;background-color:#e8e8ee;color:#555;padding:6px 14px;font-size:14px;border-radius:4px;z-index:10;"><span data-i18n="user_label">User:</span> <span id="user-badge"></span></div>
 
     <div id="menu-container">
         <div class="menu-header">
-            <h1>Cognitive Tests</h1>
-            <p>Complete these tests</p>
+            <h1 data-i18n="setup_h1">Cognitive Tests</h1>
+            <p data-i18n="menu_sub">Complete these tests</p>
         </div>
         <div class="menu-list">
-            <button data-game="corsi" onclick="goTest('corsi.html')">Corsi Block-Tapping (~3 minutes)</button>
-            <button data-game="vst" onclick="goTest('visualsearch.html')">Visual Search (~5 minutes)</button>
+            <button data-game="corsi" onclick="goTest('corsi.html')" data-i18n="menu_corsi">Corsi Block-Tapping (~3 minutes)</button>
+            <button data-game="vst" onclick="goTest('visualsearch.html')" data-i18n="menu_vst">Visual Search (~5 minutes)</button>
         </div>
-        <button id="dev-done-btn" onclick="devSetDone()">Set done</button>
+        <button id="dev-done-btn" onclick="devSetDone()" data-i18n="dev_set_done">Set done</button>
     </div>
 
+    <script src="lang.js"></script>
     <script>
         const USER_KEY = 'cogtests_user_id';
         const COMPLETIONS_KEY = 'cogtests_completions';

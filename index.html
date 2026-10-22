@@ -93,31 +93,6 @@
             background: #f0f4f8;
         }
 
-        /* Language selector, top-right of the portal */
-        #lang-box {
-            position: fixed;
-            top: 12px;
-            right: 12px;
-            display: flex;
-            align-items: center;
-            padding: 4px 6px;
-            background: #fff;
-            border: 1px solid #cbd5e0;
-            border-radius: 6px;
-            font-size: 13px;
-            color: #555;
-            z-index: 10;
-        }
-
-        #lang-box select {
-            font-size: 12px;
-            padding: 1px 2px;
-            border: 1px solid #cbd5e0;
-            border-radius: 4px;
-            background: #fff;
-            color: #333;
-        }
-
         /* Developer date override (User ID 0) */
         #dev-panel select {
             font-size: 0.75rem;
@@ -203,6 +178,47 @@
         .cal-day.today {
             outline: 2px solid #e67e22;
             outline-offset: -2px;
+        }
+
+        /* Language options: vertical stack of full-width rounded buttons below the calendar */
+        #lang-buttons {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+            margin-top: 24px;
+        }
+
+        .lang-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            width: 80%;
+            padding: 14px;
+            font-size: 1rem;
+            font-weight: bold;
+            color: #333;
+            background: #fff;
+            border: 1px solid #cbd5e0;
+            border-radius: 10px;
+            cursor: pointer;
+        }
+
+        .lang-flag {
+            font-size: 1.3rem;
+            line-height: 1;
+        }
+
+        .lang-btn:hover {
+            background: #f0f4f8;
+        }
+
+        /* Currently selected language */
+        .lang-btn.selected {
+            border-color: #3498db;
+            background: #eaf3fb;
+            color: #2980b9;
         }
 
         .cal-day .cal-month {
@@ -378,53 +394,54 @@
         <!-- First-launch setup: shown until a User ID exists -->
         <section id="page-setup" class="page">
             <div class="menu-header">
-                <h1>Cognitive Tests</h1>
-                <p>Set a User ID to begin.</p>
-                <p class="note">Setting a new User ID will reset the starting date.</p>
+                <h1 data-i18n="setup_h1">Cognitive Tests</h1>
+                <p data-i18n="setup_sub">Set a User ID to begin.</p>
+                <p class="note" data-i18n="setup_note">Setting a new User ID will reset the starting date.</p>
             </div>
             <div class="setup-card">
                 <div class="setup-field">
-                    <label for="setup-pwd">Password</label>
-                    <input type="password" id="setup-pwd" placeholder="Enter password">
+                    <label for="setup-pwd" data-i18n="password">Password</label>
+                    <input type="password" id="setup-pwd" placeholder="Enter password" data-i18n-ph="ph_password">
                 </div>
                 <div class="setup-field">
-                    <label for="setup-id">User ID</label>
-                    <input type="text" id="setup-id" placeholder="Enter user ID">
+                    <label for="setup-id" data-i18n="userid">User ID</label>
+                    <input type="text" id="setup-id" placeholder="Enter user ID" data-i18n-ph="ph_userid">
                 </div>
                 <div class="setup-error" id="setup-error"></div>
                 <div class="setup-btn-row">
-                    <button class="btn-secondary" onclick="skipSetup()">Skip (Guest)</button>
-                    <button onclick="saveSetup()">Save</button>
+                    <button class="btn-secondary" onclick="skipSetup()" data-i18n="skip_guest">Skip (Guest)</button>
+                    <button onclick="saveSetup()" data-i18n="save">Save</button>
                 </div>
             </div>
         </section>
 
         <section id="page-calendar" class="page">
             <a id="mim-btn" href="https://howieliang.github.io/mim-app/" onclick="playPop()">
-                <img src="mim.png" alt=""> Go to Mind In Images Game
+                <img src="mim.png" alt=""> <span data-i18n="mim_btn">Go to Mind In Images Game</span>
             </a>
-            <div id="lang-box">
-                <select id="lang-select" aria-label="Languages" title="Languages" onchange="localStorage.setItem('cogtests_lang', this.value)">
-                    <option value="en_us">English (US)</option>
-                </select>
-            </div>
             <div class="menu-header">
-                <h1>Portal</h1>
+                <h1 data-i18n="portal_title">Portal</h1>
                 <p id="schedule-range"></p>
-                <p class="user-line">User ID: <strong id="uid"></strong><button class="link-btn" onclick="openResetModal()">Change</button></p>
-                <p class="note">Complete the cognitive tests on each scheduled day. <br/> Play the Mind In Images Game any time you like.</p>
-                <p id="pending-indicator" style="display:none;color:#c0392b;font-size:0.8rem;margin-top:8px;cursor:pointer;" onclick="openPendingModal()">&#9888; <span id="pending-count">0</span> unsent log(s) &mdash; tap to view</p>
+                <p class="user-line"><span data-i18n="userid_label">User ID:</span> <strong id="uid"></strong><button class="link-btn" onclick="openResetModal()" data-i18n="change">Change</button></p>
+                <p class="note" data-i18n-html="cal_note">Complete the cognitive tests on each scheduled day. <br/> Play the Mind In Images Game any time you like.</p>
+                <p id="pending-indicator" style="display:none;color:#c0392b;font-size:0.8rem;margin-top:8px;cursor:pointer;" onclick="openPendingModal()">&#9888; <span id="pending-count">0</span> <span data-i18n="pending_msg">unsent log(s) &mdash; tap to view</span></p>
                 <p id="dev-panel" class="note" style="display:none;">
-                    Dev date:
+                    <span data-i18n="dev_date">Dev date:</span>
                     <select id="dev-year" onchange="applyDevDate()"></select>
                     <select id="dev-month" onchange="applyDevDate()"></select>
                     <select id="dev-day" onchange="applyDevDate()"></select>
-                    <button class="link-btn" onclick="clearDevDate()">reset</button>
+                    <button class="link-btn" onclick="clearDevDate()" data-i18n="dev_reset">reset</button>
                     &middot;
-                    <button class="link-btn" style="color:#c0392b;" onclick="devResetHistory()">clear history</button>
+                    <button class="link-btn" style="color:#c0392b;" onclick="devResetHistory()" data-i18n="dev_clear">clear history</button>
                 </p>
             </div>
             <div id="calendar-grid"></div>
+            <div id="lang-buttons">
+                <button class="lang-btn" type="button" data-lang="en" onclick="chooseLang('en')"><span class="lang-flag">🇬🇧</span>English</button>
+                <button class="lang-btn" type="button" data-lang="es" onclick="chooseLang('es')"><span class="lang-flag">🇪🇸</span>Español</button>
+                <button class="lang-btn" type="button" data-lang="nl" onclick="chooseLang('nl')"><span class="lang-flag">🇳🇱</span>Nederlands</button>
+                <button class="lang-btn" type="button" data-lang="tr" onclick="chooseLang('tr')"><span class="lang-flag">🇹🇷</span>Türkçe</button>
+            </div>
         </section>
 
     </div>
@@ -432,20 +449,20 @@
     <!-- Password-protected User ID reset -->
     <div id="reset-modal">
         <div id="reset-box">
-            <h3>Change User ID</h3>
-            <p class="note" style="text-align:center;margin:0;">Setting a new User ID will reset the starting date.</p>
+            <h3 data-i18n="reset_title">Change User ID</h3>
+            <p class="note" style="text-align:center;margin:0;" data-i18n="setup_note">Setting a new User ID will reset the starting date.</p>
             <div class="setup-field">
-                <label for="reset-pwd">Password</label>
-                <input type="password" id="reset-pwd" placeholder="Enter password">
+                <label for="reset-pwd" data-i18n="password">Password</label>
+                <input type="password" id="reset-pwd" placeholder="Enter password" data-i18n-ph="ph_password">
             </div>
             <div class="setup-field">
-                <label for="reset-id">New User ID</label>
-                <input type="text" id="reset-id" placeholder="Enter new ID">
+                <label for="reset-id" data-i18n="new_userid">New User ID</label>
+                <input type="text" id="reset-id" placeholder="Enter new ID" data-i18n-ph="ph_new_userid">
             </div>
             <div class="setup-error" id="reset-error"></div>
             <div class="setup-btn-row">
-                <button class="btn-secondary" onclick="closeResetModal()">Cancel</button>
-                <button onclick="confirmReset()">Confirm</button>
+                <button class="btn-secondary" onclick="closeResetModal()" data-i18n="cancel">Cancel</button>
+                <button onclick="confirmReset()" data-i18n="confirm">Confirm</button>
             </div>
         </div>
     </div>
@@ -453,16 +470,36 @@
     <!-- Unsent remote-log entries (view + manual retry) -->
     <div id="pending-modal">
         <div id="pending-box">
-            <h3>Unsent logs (stored locally)</h3>
+            <h3 data-i18n="pending_title">Unsent logs (stored locally)</h3>
             <div id="pending-content"></div>
             <div class="setup-btn-row">
-                <button class="btn-secondary" onclick="closePendingModal()">Close</button>
-                <button style="background-color:#2ecc71" onclick="retryPending()">Retry All</button>
+                <button class="btn-secondary" onclick="closePendingModal()" data-i18n="close">Close</button>
+                <button style="background-color:#2ecc71" onclick="retryPending()" data-i18n="retry_all">Retry All</button>
             </div>
         </div>
     </div>
 
+    <script src="lang.js"></script>
     <script>
+        // Language buttons: switch language, persist it, re-render the calendar,
+        // and highlight the active option. setLang() lives in lang.js.
+        function chooseLang(code) {
+            playPop();
+            setLang(code); // persists + re-applies static translations
+        }
+
+        function updateLangButtons() {
+            document.querySelectorAll('.lang-btn').forEach(btn => {
+                btn.classList.toggle('selected', btn.getAttribute('data-lang') === uiLang);
+            });
+        }
+
+        // lang.js calls this after a language change (and we also call it on load)
+        window.onLangChange = function () {
+            updateLangButtons();
+            renderCalendar();
+        };
+
         // Button-press sound: same 'pop' as in the tests (D5, 0.1s)
         function playPop() {
             try {
@@ -503,8 +540,8 @@
             const pwd = document.getElementById('setup-pwd').value;
             const id = document.getElementById('setup-id').value.trim();
             const err = document.getElementById('setup-error');
-            if (pwd !== MANAGER_PWD) { err.textContent = 'Incorrect password.'; return; }
-            if (!id) { err.textContent = 'Please enter a user ID.'; return; }
+            if (pwd !== MANAGER_PWD) { err.textContent = t('err_pwd'); return; }
+            if (!id) { err.textContent = t('err_userid'); return; }
             applyUserId(id);
             renderCalendar();
             showPage('page-calendar');
@@ -532,8 +569,8 @@
             const pwd = document.getElementById('reset-pwd').value;
             const id = document.getElementById('reset-id').value.trim();
             const err = document.getElementById('reset-error');
-            if (pwd !== MANAGER_PWD) { err.textContent = 'Incorrect password.'; return; }
-            if (!id) { err.textContent = 'Please enter a new ID.'; return; }
+            if (pwd !== MANAGER_PWD) { err.textContent = t('err_pwd'); return; }
+            if (!id) { err.textContent = t('err_new_id'); return; }
             applyUserId(id);
             renderCalendar();
             closeResetModal();
@@ -623,7 +660,7 @@
 
         // Wipe browser-side collected data so data collection starts over
         function devResetHistory() {
-            if (!confirm('Clear completion history, session log, and pending upload queue?')) return;
+            if (!confirm(t('dev_confirm_msg'))) return;
             localStorage.removeItem('cogtests_completions');
             localStorage.removeItem(PENDING_KEY);
             sessionStorage.removeItem('cogtests_session_log');
@@ -645,24 +682,26 @@
 
         function renderCalendar() {
             updateDevPanel();
+            const locale = LANG_LOCALES[uiLang] || 'en-US';
             const start = getStartDate();
             const end = addDays(start, 28); // start + 4 weeks
-            const fmt = d => d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+            const fmt = d => d.toLocaleDateString(locale, { month: 'short', day: 'numeric', year: 'numeric' });
             document.getElementById('schedule-range').textContent = `${fmt(start)} – ${fmt(end)}`;
 
             const grid = document.getElementById('calendar-grid');
             grid.innerHTML = '';
 
-            // Header row: empty corner + weekday abbreviations
+            // Header row: empty corner + localized weekday abbreviations (Mon–Sun)
             const corner = document.createElement('div');
             corner.className = 'cal-head';
             grid.appendChild(corner);
-            ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su'].forEach(name => {
+            const refMonday = mondayOf(new Date());
+            for (let i = 0; i < 7; i++) {
                 const head = document.createElement('div');
                 head.className = 'cal-head';
-                head.textContent = name;
+                head.textContent = addDays(refMonday, i).toLocaleDateString(locale, { weekday: 'short' });
                 grid.appendChild(head);
-            });
+            }
 
             // A start on any weekday plus 28 days always spans exactly 5 Mon-Sun rows
             const gridStart = mondayOf(start);
@@ -685,7 +724,7 @@
                         btn.classList.add('blank');
                     } else {
                         if (date.getDate() === 1) {
-                            btn.innerHTML = `<span class="cal-month">${date.toLocaleDateString('en-US', { month: 'short' })}</span>${date.getDate()}`;
+                            btn.innerHTML = `<span class="cal-month">${date.toLocaleDateString(locale, { month: 'short' })}</span>${date.getDate()}`;
                         } else {
                             btn.textContent = date.getDate();
                         }
@@ -724,6 +763,7 @@
         } else {
             showPage('page-setup');
         }
+        updateLangButtons(); // highlight the restored language
 
         // ─── Remote logging: Data Foundry (drain + pending-log UI) ──────────
         // The games create and send the entries; this page shows the unsent

@@ -144,17 +144,17 @@
 </head>
 <body>
 
-<button onclick="window.location.href='menu.html'" style="position:fixed;top:12px;left:12px;background-color:#95a5a6;color:white;border:none;padding:6px 14px;font-size:14px;border-radius:4px;cursor:pointer;z-index:10;">Back</button>
+<button onclick="window.location.href='menu.html'" style="position:fixed;top:12px;left:12px;background-color:#95a5a6;color:white;border:none;padding:6px 14px;font-size:14px;border-radius:4px;cursor:pointer;z-index:10;" data-i18n="back">Back</button>
 
-<div style="position:fixed;top:12px;right:12px;background-color:#e8e8ee;color:#555;padding:6px 14px;font-size:14px;border-radius:4px;z-index:10;">User: <span id="user-badge"></span></div>
+<div style="position:fixed;top:12px;right:12px;background-color:#e8e8ee;color:#555;padding:6px 14px;font-size:14px;border-radius:4px;z-index:10;"><span data-i18n="user_label">User:</span> <span id="user-badge"></span></div>
 <script>document.getElementById('user-badge').textContent = localStorage.getItem('cogtests_user_id') || 'guest';</script>
 
-    <h1>Corsi Block Task</h1>
-    <p class="instructions">Watch the blocks light up, tap them in the same order.</p>
+    <h1 data-i18n="corsi_title">Corsi Block Task</h1>
+    <p class="instructions" data-i18n="corsi_instructions">Watch the blocks light up, tap them in the same order.</p>
 
     <div id="message-panel">
-        <p id="message-text">The sequence starts at 2 blocks and grows as you succeed. You get two attempts at each length; the test ends when both attempts at a length fail.</p>
-        <button id="start-btn" onclick="startGame()">Start Test</button>
+        <p id="message-text" data-i18n="corsi_intro">The sequence starts at 2 blocks and grows as you succeed. You get two attempts at each length; the test ends when both attempts at a length fail.</p>
+        <button id="start-btn" onclick="startGame()" data-i18n="corsi_start">Start Test</button>
     </div>
 
     <div id="progress"></div>
@@ -165,6 +165,7 @@
 
     <canvas id="board" class="disabled" width="440" height="590"></canvas>
 
+    <script src="lang.js"></script>
     <script>
         // ─── Session logging ─────────────────────────────────────────────────────
         // One entry per completed session: user id, game type, timestamp, metrics.
@@ -480,8 +481,8 @@
 
         function nextRound() {
             userSequence = [];
-            progressText.textContent = `Round ${trialsAtLength + 1} (of 2)`;
-            statusText.textContent = 'Watch the sequence';
+            progressText.textContent = t('corsi_round', { n: trialsAtLength + 1 });
+            statusText.textContent = t('corsi_watch');
             buildDots(currentSequenceLength);
             canvas.classList.add('disabled', 'demo');
             canvas.classList.remove('input');
@@ -509,7 +510,7 @@
                 // Discontinue: both trials at this length failed.
                 // No results are shown; the metrics go to the session log only.
                 // The completion message takes the progress line's spot and size.
-                progressText.textContent = 'Task complete. Thank you.';
+                progressText.textContent = t('corsi_done');
                 statusText.textContent = '';
                 logSession(1, {
                     corsi_span: corsiSpan,
@@ -518,22 +519,22 @@
                     transposition_errors: transpositionErrors,
                     other_errors: totalErrors - transpositionErrors
                 });
-                startBtn.textContent = 'Try again';
+                startBtn.textContent = t('try_again');
                 messagePanel.style.display = 'block';
                 return;
             }
 
             if (trialsAtLength === 2) {
                 // Both trials given, at least one passed — advance to the next length
-                statusText.textContent = passed ? 'Correct! Moving to next level...'
-                                                : 'Incorrect! Moving to the next length…';
+                statusText.textContent = passed ? t('corsi_correct_next')
+                                                : t('corsi_incorrect_next');
                 currentSequenceLength++;
                 trialsAtLength = 0;
                 passesAtLength = 0;
             } else {
                 // Second trial at the same length
-                statusText.textContent = passed ? 'Correct! One more sequence at this length…'
-                                                : 'Incorrect! You have 1 attempt left for this length.';
+                statusText.textContent = passed ? t('corsi_correct_more')
+                                                : t('corsi_incorrect_retry');
             }
             setTimeout(nextRound, passed ? 1500 : 2000);
         }
@@ -541,7 +542,7 @@
         function playSequence(index) {
             if (index >= sequence.length) {
                 // Sequence finished playing, hand over control to the user
-                statusText.textContent = 'Your turn! Repeat the sequence.';
+                statusText.textContent = t('corsi_your_turn');
                 resetDots(); // back to blue for the input stage
                 canvas.classList.remove('disabled', 'demo');
                 canvas.classList.add('input');
